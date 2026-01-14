@@ -20,6 +20,10 @@ export default function StreamEnded({ stream }) {
     }
   };
 
+  useEffect(() => {
+    fetchRecommendedStreams();
+  }, []);
+
   return (
     <div className="stream-ended-page">
       <div className="stream-ended-container">
