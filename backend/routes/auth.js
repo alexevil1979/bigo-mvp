@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const authController = require('../controllers/authController');
+const qrController = require('../controllers/qrController');
 const { authenticate } = require('../middleware/auth');
 
 // Валидация для регистрации
@@ -34,6 +35,11 @@ router.post('/register', registerValidation, authController.register);
 router.post('/login', loginValidation, authController.login);
 router.get('/me', authenticate, authController.getMe);
 router.put('/profile', authenticate, authController.updateProfile);
+
+// QR-код авторизация
+router.post('/qr-session', qrController.createQRSession);
+router.post('/qr-confirm', qrController.confirmQRLogin);
+router.get('/qr-session/:sessionId', qrController.checkQRSession);
 
 module.exports = router;
 

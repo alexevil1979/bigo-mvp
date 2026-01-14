@@ -31,6 +31,9 @@ const io = socketIo(server, {
   }
 });
 
+// Делаем io доступным для контроллеров (для QR-кода и других сервисов)
+app.set('io', io);
+
 // Middleware
 app.use(cors({
   origin: function (origin, callback) {
