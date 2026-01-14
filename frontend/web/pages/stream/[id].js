@@ -52,6 +52,7 @@ export default function StreamPage() {
     return () => {
       socket.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchStream = async () => {

@@ -14,31 +14,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const socketRef = useRef(null);
 
-  useEffect(() => {
-    fetchStreams();
-
-    // Подключаемся к Socket.IO для обновлений в реальном времени
-    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
-    socketRef.current = socket;
-
-    // Слушаем обновления списка стримов
-    socket.on('stream-list-updated', (data) => {
-      if (data.action === 'ended') {
-        // Удаляем завершенный стрим из списка
-        setStreams(prevStreams => prevStreams.filter(s => s._id !== data.streamId));
-      } else if (data.action === 'created') {
-        // Добавляем новый стрим в список
-        fetchStreams();
-      }
-    });
-
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
-    };
-  }, []);
-
   const fetchStreams = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams`);
