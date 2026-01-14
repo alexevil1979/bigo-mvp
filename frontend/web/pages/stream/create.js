@@ -15,6 +15,7 @@ export default function CreateStream() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingActive, setCheckingActive] = useState(true);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -24,6 +25,12 @@ export default function CreateStream() {
 
     // Проверяем, есть ли активный стрим
     const checkActiveStream = async () => {
+      if (!token) {
+        setCheckingActive(false);
+        return;
+      }
+      
+      setCheckingActive(true);
       try {
         const response = await axios.get(
           `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams/my/active`,
@@ -36,20 +43,23 @@ export default function CreateStream() {
 
         if (response.data.stream) {
           // Найден активный стрим - продолжаем его
+          console.log('Найден активный стрим, продолжаем:', response.data.stream);
           setStream(response.data.stream);
         }
       } catch (err) {
         // Активного стрима нет - это нормально
-        if (err.response?.status !== 404) {
+        if (err.response?.status === 404) {
+          console.log('Активного стрима нет, можно создать новый');
+        } else {
           console.error('Ошибка проверки активного стрима:', err);
         }
+      } finally {
+        setCheckingActive(false);
       }
     };
 
-    if (token) {
-      checkActiveStream();
-    }
-  }, [isAuthenticated, token]);
+    checkActiveStream();
+  }, [isAuthenticated, token, router]);
 
   const handleChange = (e) => {
     setFormData({
@@ -76,7 +86,13 @@ export default function CreateStream() {
 
       setStream(response.data.stream);
     } catch (err) {
-      setError(err.response?.data?.error || 'Ошибка создания стрима');
+      // Если есть активный стрим, используем его вместо ошибки
+      if (err.response?.status === 400 && err.response?.data?.stream) {
+        console.log('Найден активный стрим, продолжаем его:', err.response.data.stream);
+        setStream(err.response.data.stream);
+      } else {
+        setError(err.response?.data?.error || 'Ошибка создания стрима');
+      }
     } finally {
       setLoading(false);
     }
@@ -86,6 +102,16 @@ export default function CreateStream() {
     return null;
   }
 
+  // Показываем загрузку при проверке активного стрима
+  if (checkingActive) {
+    return (
+      <div className="container">
+        <div className="loading">Проверка активного стрима...</div>
+      </div>
+    );
+  }
+
+  // Если найден активный стрим, показываем его
   if (stream) {
     return <StreamBroadcaster stream={stream} user={user} />;
   }
