@@ -466,19 +466,13 @@ body {
 .recent-gifts {
   margin-top: 10px;
   font-size: 11px;
-}
-
-.recent-gifts h4 {
-  font-size: 12px;
-  margin-bottom: 5px;
-}
   padding-top: 20px;
   border-top: 1px solid #333;
 }
 
 .recent-gifts h4 {
+  font-size: 12px;
   margin-bottom: 10px;
-  font-size: 14px;
 }
 
 .gifts-list {
