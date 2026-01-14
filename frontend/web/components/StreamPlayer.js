@@ -32,13 +32,25 @@ export default function StreamPlayer({ stream, user }) {
         pc.ontrack = (event) => {
           console.log('Получен трек от стримера:', event);
           if (videoRef.current) {
+            let mediaStream = null;
             if (event.streams && event.streams[0]) {
-              videoRef.current.srcObject = event.streams[0];
+              mediaStream = event.streams[0];
+              videoRef.current.srcObject = mediaStream;
             } else if (event.track) {
               // Альтернативный способ получения потока
-              const stream = new MediaStream([event.track]);
-              videoRef.current.srcObject = stream;
+              mediaStream = new MediaStream([event.track]);
+              videoRef.current.srcObject = mediaStream;
             }
+            
+            // Автоматически запускаем воспроизведение
+            if (mediaStream && videoRef.current) {
+              videoRef.current.play().catch(err => {
+                console.error('Ошибка автоматического воспроизведения:', err);
+                // Если автоплей заблокирован, показываем сообщение
+                setError('Нажмите play для воспроизведения');
+              });
+            }
+            
             setIsConnected(true);
             setError('');
           }
@@ -158,6 +170,43 @@ export default function StreamPlayer({ stream, user }) {
     };
   }, [stream, user?.id]);
 
+  // Отдельный useEffect для автоматического воспроизведения
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+
+    const handleLoadedMetadata = () => {
+      if (videoElement.srcObject && videoElement.paused) {
+        videoElement.play().catch(err => {
+          console.error('Ошибка автоматического воспроизведения при загрузке:', err);
+        });
+      }
+    };
+
+    const handleCanPlay = () => {
+      if (videoElement.srcObject && videoElement.paused) {
+        videoElement.play().catch(err => {
+          console.error('Ошибка автоматического воспроизведения:', err);
+        });
+      }
+    };
+
+    const handlePlay = () => {
+      setIsConnected(true);
+      setError('');
+    };
+
+    videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+    videoElement.addEventListener('canplay', handleCanPlay);
+    videoElement.addEventListener('play', handlePlay);
+
+    return () => {
+      videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      videoElement.removeEventListener('canplay', handleCanPlay);
+      videoElement.removeEventListener('play', handlePlay);
+    };
+  }, [isConnected]);
+
   return (
     <div className="stream-player">
       {error && <div className="error">{error}</div>}
@@ -166,7 +215,22 @@ export default function StreamPlayer({ stream, user }) {
         autoPlay
         playsInline
         controls
+        muted={false}
         className="video-player"
+        onLoadedMetadata={() => {
+          if (videoRef.current && videoRef.current.paused) {
+            videoRef.current.play().catch(err => {
+              console.error('Ошибка автоплея:', err);
+            });
+          }
+        }}
+        onCanPlay={() => {
+          if (videoRef.current && videoRef.current.paused) {
+            videoRef.current.play().catch(err => {
+              console.error('Ошибка автоплея:', err);
+            });
+          }
+        }}
       />
       {!isConnected && <div className="loading">Подключение к стриму...</div>}
     </div>
