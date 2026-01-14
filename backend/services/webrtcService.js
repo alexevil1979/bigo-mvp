@@ -1,0 +1,151 @@
+/**
+ * Сервис для управления WebRTC соединениями
+ * Обрабатывает сигналинг для установки peer-to-peer соединений
+ */
+
+let io;
+
+/**
+ * Инициализация WebRTC сервиса
+ */
+const initialize = (socketIo) => {
+  io = socketIo;
+
+  io.on('connection', (socket) => {
+    console.log(`✅ Пользователь подключился к WebRTC: ${socket.id}`);
+
+    // Присоединение к стриму (как стример или зритель)
+    socket.on('join-stream', (data) => {
+      const { streamId, userId, isStreamer } = data;
+
+      socket.join(`webrtc-${streamId}`);
+      socket.streamId = streamId;
+      socket.userId = userId;
+      socket.isStreamer = isStreamer;
+
+      if (isStreamer) {
+        console.log(`📹 Стример ${userId} начал стрим ${streamId}`);
+        // Уведомляем всех зрителей о новом стримере
+        socket.to(`webrtc-${streamId}`).emit('streamer-joined', {
+          streamId,
+          streamerId: userId
+        });
+      } else {
+        console.log(`👁️ Зритель ${userId} присоединился к стриму ${streamId}`);
+        // Уведомляем стримера о новом зрителе
+        socket.to(`webrtc-${streamId}`).emit('viewer-joined', {
+          streamId,
+          viewerId: userId
+        });
+      }
+    });
+
+    // WebRTC Offer (предложение соединения)
+    socket.on('webrtc-offer', (data) => {
+      const { streamId, offer, targetId } = data;
+
+      // Отправляем offer целевому пользователю
+      socket.to(`webrtc-${streamId}`).emit('webrtc-offer', {
+        offer,
+        senderId: socket.userId,
+        streamId
+      });
+
+      console.log(`📤 WebRTC Offer отправлен в стриме ${streamId}`);
+    });
+
+    // WebRTC Answer (ответ на предложение)
+    socket.on('webrtc-answer', (data) => {
+      const { streamId, answer, targetId } = data;
+
+      // Отправляем answer целевому пользователю
+      socket.to(`webrtc-${streamId}`).emit('webrtc-answer', {
+        answer,
+        senderId: socket.userId,
+        streamId
+      });
+
+      console.log(`📥 WebRTC Answer отправлен в стриме ${streamId}`);
+    });
+
+    // ICE Candidate (кандидаты для установки соединения)
+    socket.on('webrtc-ice-candidate', (data) => {
+      const { streamId, candidate, targetId } = data;
+
+      // Отправляем ICE candidate целевому пользователю
+      socket.to(`webrtc-${streamId}`).emit('webrtc-ice-candidate', {
+        candidate,
+        senderId: socket.userId,
+        streamId
+      });
+    });
+
+    // Получение списка активных зрителей стрима
+    socket.on('get-viewers', async (data) => {
+      const { streamId } = data;
+
+      try {
+        const sockets = await io.in(`webrtc-${streamId}`).fetchSockets();
+        const viewers = sockets
+          .filter(s => !s.isStreamer && s.userId)
+          .map(s => ({
+            id: s.userId,
+            socketId: s.id
+          }));
+
+        socket.emit('viewers-list', { streamId, viewers });
+      } catch (error) {
+        console.error('Ошибка получения списка зрителей:', error);
+      }
+    });
+
+    // Отключение от стрима
+    socket.on('leave-stream', (data) => {
+      const { streamId } = data;
+
+      socket.leave(`webrtc-${streamId}`);
+      socket.to(`webrtc-${streamId}`).emit('user-left', {
+        userId: socket.userId,
+        streamId
+      });
+
+      console.log(`👋 Пользователь ${socket.userId} покинул стрим ${streamId}`);
+    });
+
+    // Отключение
+    socket.on('disconnect', () => {
+      if (socket.streamId) {
+        io.to(`webrtc-${socket.streamId}`).emit('user-disconnected', {
+          userId: socket.userId,
+          streamId: socket.streamId
+        });
+      }
+      console.log(`❌ Пользователь отключился от WebRTC: ${socket.id}`);
+    });
+  });
+};
+
+/**
+ * Получение STUN/TURN серверов для WebRTC
+ */
+const getIceServers = () => {
+  return {
+    iceServers: [
+      {
+        urls: process.env.WEBRTC_STUN_SERVER || 'stun:stun.l.google.com:19302'
+      },
+      // Если есть TURN сервер, добавляем его
+      ...(process.env.WEBRTC_TURN_SERVER ? [{
+        urls: process.env.WEBRTC_TURN_SERVER,
+        username: process.env.WEBRTC_TURN_USERNAME,
+        credential: process.env.WEBRTC_TURN_PASSWORD
+      }] : [])
+    ]
+  };
+};
+
+module.exports = {
+  initialize,
+  getIceServers
+};
+
