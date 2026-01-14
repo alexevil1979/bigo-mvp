@@ -14,11 +14,11 @@ const PaymentSchema = new mongoose.Schema({
     required: true
   },
   // ID транзакции в платежной системе
+  // unique: true автоматически создает индекс, не нужно дублировать через schema.index()
   transactionId: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   // Сумма в реальной валюте (в центах для USD)
   amount: {
