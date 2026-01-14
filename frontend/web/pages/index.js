@@ -32,6 +32,7 @@ export default function Home() {
       <Head>
         <title>NIO - Прямые трансляции</title>
         <meta name="description" content="NIO - платформа для прямых трансляций" />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
       <div className="container">
       <header className="header">
