@@ -17,7 +17,8 @@ const PaymentSchema = new mongoose.Schema({
   transactionId: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    index: true
   },
   // Сумма в реальной валюте (в центах для USD)
   amount: {
@@ -63,7 +64,7 @@ const PaymentSchema = new mongoose.Schema({
 
 // Индексы
 PaymentSchema.index({ user: 1, createdAt: -1 });
-PaymentSchema.index({ transactionId: 1 });
+// transactionId уже имеет unique index, не нужно дублировать
 PaymentSchema.index({ status: 1 });
 
 module.exports = mongoose.model('Payment', PaymentSchema);
