@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Head from 'next/head';
 import axios from 'axios';
+import io from 'socket.io-client';
 import { useAuth } from '../contexts/AuthContext';
 import StreamCard from '../components/StreamCard';
 
@@ -11,15 +12,39 @@ export default function Home() {
   const router = useRouter();
   const [streams, setStreams] = useState([]);
   const [loading, setLoading] = useState(true);
+  const socketRef = useRef(null);
 
   useEffect(() => {
     fetchStreams();
+
+    // Подключаемся к Socket.IO для обновлений в реальном времени
+    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
+    socketRef.current = socket;
+
+    // Слушаем обновления списка стримов
+    socket.on('stream-list-updated', (data) => {
+      if (data.action === 'ended') {
+        // Удаляем завершенный стрим из списка
+        setStreams(prevStreams => prevStreams.filter(s => s._id !== data.streamId));
+      } else if (data.action === 'created') {
+        // Добавляем новый стрим в список
+        fetchStreams();
+      }
+    });
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
   }, []);
 
   const fetchStreams = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams`);
-      setStreams(response.data.streams || []);
+      // Фильтруем только активные стримы
+      const activeStreams = (response.data.streams || []).filter(s => s.status === 'live');
+      setStreams(activeStreams);
     } catch (error) {
       console.error('Ошибка загрузки стримов:', error);
     } finally {
@@ -30,13 +55,13 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>NIO - Прямые трансляции</title>
+        <title>NIO - LIVE</title>
         <meta name="description" content="NIO - платформа для прямых трансляций" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <div className="container">
       <header className="header">
-        <h1>🎥 NIO - Прямые трансляции</h1>
+        <h1><img src="/favicon.ico" alt="NIO" className="logo-icon" /> NIO - LIVE</h1>
         <nav>
           {isAuthenticated ? (
             <>
@@ -58,7 +83,7 @@ export default function Home() {
 
       <main className="main-content">
         <div className="main-header">
-          <h2>🎥 Активные стримы</h2>
+          <h2>LIVE стримы</h2>
           <div className="stream-tabs">
             <button className="tab active">Все</button>
             <button className="tab">Игры</button>

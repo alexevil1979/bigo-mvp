@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import StreamPlayer from '../../components/StreamPlayer';
 import StreamBroadcaster from '../../components/StreamBroadcaster';
+import StreamEnded from '../../components/StreamEnded';
 import Chat from '../../components/Chat';
 import GiftPanel from '../../components/GiftPanel';
 import io from 'socket.io-client';
@@ -29,15 +30,29 @@ export default function StreamPage() {
   }, [id, user?.id]);
 
   useEffect(() => {
-    if (!id || !isAuthenticated) return;
+    if (!id) return;
 
     const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
     socketRef.current = socket;
 
+    // Слушаем событие завершения стрима
+    socket.on('stream-ended', (data) => {
+      if (data.streamId === id) {
+        fetchStream();
+      }
+    });
+
+    // Слушаем обновления списка стримов
+    socket.on('stream-list-updated', (data) => {
+      if (data.action === 'ended' && data.streamId === id) {
+        fetchStream();
+      }
+    });
+
     return () => {
       socket.disconnect();
     };
-  }, [id, isAuthenticated]);
+  }, [id]);
 
   const fetchStream = async () => {
     try {
@@ -93,6 +108,11 @@ export default function StreamPage() {
 
   if (!stream) {
     return <div className="container">Стрим не найден</div>;
+  }
+
+  // Если стрим завершен, показываем экран завершения
+  if (stream.status !== 'live') {
+    return <StreamEnded stream={stream} />;
   }
 
   // Если пользователь - стример, показываем страницу стримера
@@ -196,7 +216,7 @@ export default function StreamPage() {
             <StreamPlayer stream={stream} user={user} />
             <div className="video-overlay-gradient">
               <div className="overlay-content">
-                <div className="nio-logo">NIO</div>
+                <img src="/favicon.ico" alt="NIO" className="nio-logo-img" />
                 <div className="stream-id-overlay">ID: {stream.streamer?._id?.toString().slice(-10) || 'N/A'}</div>
               </div>
             </div>
@@ -224,7 +244,11 @@ export default function StreamPage() {
                 onChange={(e) => setBottomChatInput(e.target.value)}
                 maxLength={500}
               />
-              <button type="submit" className="send-button">Отправить</button>
+              <button type="submit" className="send-button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+              </button>
             </form>
           ) : (
             <div className="chat-login-prompt-bottom">
@@ -457,10 +481,11 @@ export default function StreamPage() {
           color: #fff;
         }
 
-        .nio-logo {
-          font-size: 24px;
-          font-weight: 700;
+        .nio-logo-img {
+          width: 60px;
+          height: 60px;
           margin-bottom: 10px;
+          object-fit: contain;
         }
 
         .stream-id-overlay {

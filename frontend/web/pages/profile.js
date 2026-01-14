@@ -66,7 +66,7 @@ export default function Profile() {
   return (
     <div className="container">
       <header className="header">
-        <h1>🎥 Стриминговый Сервис</h1>
+        <h1><img src="/favicon.ico" alt="NIO" className="logo-icon" /> NIO - LIVE</h1>
         <nav>
           <Link href="/">Главная</Link>
           <Link href="/stream/create">Начать стрим</Link>
@@ -99,10 +99,10 @@ export default function Profile() {
               <div className="stat-value">{profileData?.beans || 0}</div>
               <div className="stat-label">Бобы</div>
             </div>
-            <div className="stat-card">
+            <Link href="/" className="stat-card" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="stat-value">{profileData?.stats?.totalStreams || 0}</div>
               <div className="stat-label">Стримов</div>
-            </div>
+            </Link>
             <div className="stat-card">
               <div className="stat-value">{profileData?.stats?.totalBeansEarned || 0}</div>
               <div className="stat-label">Заработано бобов</div>
@@ -182,6 +182,16 @@ export default function Profile() {
         }
 
         .stat-card {
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        a.stat-card {
           background: #2a2a2a;
           padding: 20px;
           border-radius: 8px;

@@ -6,6 +6,7 @@ export default function Chat({ streamId, user }) {
   const [inputMessage, setInputMessage] = useState('');
   const [reactions, setReactions] = useState([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const emojiPickerRef = useRef(null);
@@ -97,10 +98,20 @@ export default function Chat({ streamId, user }) {
       userId: user.id,
       nickname: user.nickname,
       avatar: user.avatar,
-      message: inputMessage.trim()
+      message: inputMessage.trim(),
+      replyTo: replyingTo ? replyingTo.userId : null,
+      replyToNickname: replyingTo ? replyingTo.nickname : null
     });
 
     setInputMessage('');
+    setReplyingTo(null);
+  };
+
+  const handleReply = (message) => {
+    setReplyingTo({
+      userId: message.userId,
+      nickname: message.nickname
+    });
   };
 
   const sendReaction = (reaction) => {
@@ -140,7 +151,19 @@ export default function Chat({ streamId, user }) {
             key={msg.id || index} 
             className={`chat-message ${msg.isWarning ? 'warning-message' : ''}`}
           >
-            <span className="chat-nickname">{msg.nickname}:</span>
+            {msg.replyToNickname && (
+              <div className="reply-indicator">
+                ↳ Ответ {msg.replyToNickname}
+              </div>
+            )}
+            <span 
+              className="chat-nickname"
+              onClick={() => !msg.isWarning && handleReply(msg)}
+              style={{ cursor: msg.isWarning ? 'default' : 'pointer' }}
+              title={msg.isWarning ? '' : 'Ответить'}
+            >
+              {msg.nickname}:
+            </span>
             <span className="chat-text">{msg.message}</span>
           </div>
         ))}
@@ -155,12 +178,24 @@ export default function Chat({ streamId, user }) {
       </div>
       {isAuthenticated && (
         <>
+          {replyingTo && (
+            <div className="reply-preview">
+              <span>Ответ {replyingTo.nickname}:</span>
+              <button 
+                type="button"
+                onClick={() => setReplyingTo(null)}
+                className="reply-cancel"
+              >
+                ×
+              </button>
+            </div>
+          )}
           <form onSubmit={sendMessage} className="chat-input-form">
             <input
               type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="Введите сообщение..."
+              placeholder={replyingTo ? `Ответить ${replyingTo.nickname}...` : "Введите сообщение..."}
               maxLength={500}
             />
             <div className="emoji-picker-wrapper" ref={emojiPickerRef}>
@@ -190,7 +225,11 @@ export default function Chat({ streamId, user }) {
                 </div>
               )}
             </div>
-            <button type="submit" className="send-button">Отправить</button>
+            <button type="submit" className="send-button">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+              </svg>
+            </button>
           </form>
         </>
       )}
@@ -239,6 +278,46 @@ export default function Chat({ streamId, user }) {
         .chat-message.warning-message .chat-text {
           color: #ffc107;
           font-weight: 500;
+        }
+
+        .reply-indicator {
+          font-size: 11px;
+          color: #6366f1;
+          margin-bottom: 4px;
+          font-style: italic;
+        }
+
+        .chat-nickname {
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+
+        .chat-nickname:hover {
+          color: #6366f1;
+        }
+
+        .reply-preview {
+          padding: 8px 15px;
+          background: #2a2a2a;
+          border-top: 1px solid #333;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 12px;
+          color: #6366f1;
+        }
+
+        .reply-cancel {
+          background: transparent;
+          border: none;
+          color: #aaa;
+          cursor: pointer;
+          font-size: 18px;
+          padding: 0 5px;
+        }
+
+        .reply-cancel:hover {
+          color: #fff;
         }
 
         @keyframes warningPulse {
@@ -378,7 +457,7 @@ export default function Chat({ streamId, user }) {
         }
 
         .send-button {
-          padding: 10px 20px;
+          padding: 10px 15px;
           background: #6366f1;
           color: #fff;
           border: none;
@@ -386,10 +465,18 @@ export default function Chat({ streamId, user }) {
           cursor: pointer;
           font-weight: 600;
           transition: background 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .send-button:hover {
           background: #4f46e5;
+        }
+
+        .send-button svg {
+          width: 20px;
+          height: 20px;
         }
 
         .chat-login-prompt {

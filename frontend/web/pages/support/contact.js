@@ -1,0 +1,18 @@
+import Head from 'next/head';
+import Link from 'next/link';
+
+export default function Contact() {
+  return (
+    <>
+      <Head>
+        <title>Связаться с нами - NIO</title>
+      </Head>
+      <div style={{ maxWidth: '800px', margin: '50px auto', padding: '20px' }}>
+        <h1>Связаться с нами</h1>
+        <p>Свяжитесь с нашей службой поддержки для получения помощи.</p>
+        <p><Link href="/">← Вернуться на главную</Link></p>
+      </div>
+    </>
+  );
+}
+
