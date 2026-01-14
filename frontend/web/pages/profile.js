@@ -40,7 +40,8 @@ export default function Profile() {
 
   const handleLogout = () => {
     logout();
-    router.push('/');
+    // Используем window.location для полной перезагрузки страницы
+    window.location.href = '/';
   };
 
   if (loading) {
