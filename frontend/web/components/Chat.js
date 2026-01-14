@@ -6,18 +6,19 @@ export default function Chat({ streamId, user }) {
   const [inputMessage, setInputMessage] = useState('');
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const isAuthenticated = !!user;
 
   useEffect(() => {
-    if (!streamId || !user) return;
+    if (!streamId) return;
 
     const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
     socketRef.current = socket;
 
-    // Присоединяемся к чату стрима
+    // Присоединяемся к чату стрима (все могут читать, но только авторизованные могут писать)
     socket.emit('join-stream-chat', {
       streamId,
-      userId: user.id,
-      nickname: user.nickname
+      userId: isAuthenticated ? user.id : `guest-${socket.id}`,
+      nickname: isAuthenticated ? user.nickname : 'Гость'
     });
 
     // Слушаем новые сообщения
@@ -34,7 +35,7 @@ export default function Chat({ streamId, user }) {
     return () => {
       socket.disconnect();
     };
-  }, [streamId, user]);
+  }, [streamId, user?.id, isAuthenticated]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -42,7 +43,7 @@ export default function Chat({ streamId, user }) {
 
   const sendMessage = (e) => {
     e.preventDefault();
-    if (!inputMessage.trim() || !socketRef.current) return;
+    if (!inputMessage.trim() || !socketRef.current || !isAuthenticated) return;
 
     socketRef.current.emit('send-message', {
       streamId,
@@ -56,7 +57,7 @@ export default function Chat({ streamId, user }) {
   };
 
   const sendReaction = (reaction) => {
-    if (!socketRef.current) return;
+    if (!socketRef.current || !isAuthenticated) return;
     socketRef.current.emit('send-reaction', {
       streamId,
       userId: user.id,
@@ -76,27 +77,37 @@ export default function Chat({ streamId, user }) {
         ))}
         <div ref={messagesEndRef} />
       </div>
-      <div className="chat-reactions">
-        {['❤️', '👍', '🔥', '🎉', '😍'].map(emoji => (
-          <button
-            key={emoji}
-            onClick={() => sendReaction(emoji)}
-            className="reaction-button"
-          >
-            {emoji}
-          </button>
-        ))}
-      </div>
-      <form onSubmit={sendMessage} className="chat-input-form">
-        <input
-          type="text"
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-          placeholder="Введите сообщение..."
-          maxLength={500}
-        />
-        <button type="submit">Отправить</button>
-      </form>
+      {isAuthenticated && (
+        <>
+          <div className="chat-reactions">
+            {['❤️', '👍', '🔥', '🎉', '😍'].map(emoji => (
+              <button
+                key={emoji}
+                onClick={() => sendReaction(emoji)}
+                className="reaction-button"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+          <form onSubmit={sendMessage} className="chat-input-form">
+            <input
+              type="text"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              placeholder="Введите сообщение..."
+              maxLength={500}
+            />
+            <button type="submit">Отправить</button>
+          </form>
+        </>
+      )}
+      {!isAuthenticated && (
+        <div className="chat-login-prompt">
+          <p>Войдите, чтобы писать в чат</p>
+          <a href="/login">Войти</a>
+        </div>
+      )}
     </div>
   );
 }

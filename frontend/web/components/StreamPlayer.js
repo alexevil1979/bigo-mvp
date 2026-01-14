@@ -10,12 +10,12 @@ export default function StreamPlayer({ stream, user }) {
 
   useEffect(() => {
     if (!stream) return;
-    
-    // Для неавторизованных пользователей используем временный ID
-    const userId = user?.id || `guest-${socketRef.current?.id || Date.now()}`;
 
     const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
     socketRef.current = socket;
+    
+    // Для неавторизованных пользователей используем временный ID на основе socket.id
+    const userId = user?.id || `guest-${socket.id}`;
 
     // Настройка WebRTC
     const setupWebRTC = async () => {
@@ -69,13 +69,13 @@ export default function StreamPlayer({ stream, user }) {
         // Присоединяемся к стриму как зритель
         socket.emit('join-stream', {
           streamId: stream._id,
-          userId: user.id,
+          userId: userId,
           isStreamer: false
         });
 
         // Слушаем offer от стримера
         const offerHandler = async (data) => {
-          if (data.streamId === stream._id && (data.targetId === user.id || !data.targetId)) {
+          if (data.streamId === stream._id && (data.targetId === userId || !data.targetId)) {
             console.log('Получен offer от стримера:', data);
             try {
               await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
@@ -106,7 +106,7 @@ export default function StreamPlayer({ stream, user }) {
 
         // Слушаем ICE кандидаты
         socket.on('webrtc-ice-candidate', async (data) => {
-          if (data.streamId === stream._id && (data.targetId === user.id || data.senderId === stream.streamer._id)) {
+          if (data.streamId === stream._id && (data.targetId === userId || data.senderId === stream.streamer._id)) {
             try {
               await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
             } catch (error) {
@@ -135,7 +135,7 @@ export default function StreamPlayer({ stream, user }) {
         socketRef.current.disconnect();
       }
     };
-  }, [stream, user]);
+  }, [stream, user?.id]);
 
   return (
     <div className="stream-player">

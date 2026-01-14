@@ -46,6 +46,12 @@ const initialize = (socketIo) => {
     socket.on('send-message', async (data) => {
       const { streamId, userId, nickname, message, avatar } = data;
 
+      // Проверяем, что пользователь не гость (не начинается с "guest-")
+      if (userId && userId.startsWith('guest-')) {
+        socket.emit('error', { message: 'Необходима авторизация для отправки сообщений' });
+        return;
+      }
+
       // Проверка на спам (можно добавить более сложную логику)
       if (!message || message.trim().length === 0) {
         return;
@@ -75,6 +81,12 @@ const initialize = (socketIo) => {
     // Отправка реакции (эмодзи)
     socket.on('send-reaction', (data) => {
       const { streamId, userId, nickname, reaction } = data;
+
+      // Проверяем, что пользователь не гость
+      if (userId && userId.startsWith('guest-')) {
+        socket.emit('error', { message: 'Необходима авторизация для отправки реакций' });
+        return;
+      }
 
       const reactionData = {
         userId,
