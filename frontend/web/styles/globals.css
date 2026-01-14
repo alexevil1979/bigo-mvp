@@ -50,6 +50,15 @@ body {
   background-color: #333;
 }
 
+.user-info {
+  color: #6366f1;
+  font-weight: 600;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* Auth Forms */
 .auth-form {
   max-width: 400px;

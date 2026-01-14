@@ -33,6 +33,9 @@ export default function Home() {
         <nav>
           {isAuthenticated ? (
             <>
+              <span className="user-info">
+                👤 {user?.nickname || 'Пользователь'}
+              </span>
               <Link href="/profile">Профиль</Link>
               <Link href="/stream/create">Начать стрим</Link>
               <Link href="/logout">Выход</Link>
