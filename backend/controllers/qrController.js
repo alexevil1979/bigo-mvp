@@ -34,7 +34,7 @@ exports.createQRSession = async (req, res) => {
     const qrData = {
       sessionId,
       timestamp: Date.now(),
-      type: 'bigo-login'
+      type: 'nio-login'
     };
 
     // Генерируем QR-код как base64 изображение

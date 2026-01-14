@@ -51,7 +51,7 @@ export default function Login() {
   };
 
   return (
-    <div className="bigo-login-page">
+    <div className="nio-login-page">
       <div className="login-container">
         {showQR ? (
           <>
@@ -158,7 +158,7 @@ export default function Login() {
       </div>
 
       <style jsx>{`
-        .bigo-login-page {
+        .nio-login-page {
           min-height: 100vh;
           background: #fff;
           display: flex;

@@ -104,7 +104,7 @@ export default function StreamPage() {
     if (navigator.share) {
       navigator.share({
         title: stream.title,
-        text: `Смотри стрим ${stream.streamer?.nickname} на BIGO LIVE`,
+        text: `Смотри стрим ${stream.streamer?.nickname} на NIO`,
         url: window.location.href
       }).catch(() => {});
     } else {
@@ -138,7 +138,7 @@ export default function StreamPage() {
   };
 
   return (
-    <div className="bigo-stream-page">
+    <div className="nio-stream-page">
       {/* Верхняя панель с профилем стримера */}
       <div className="stream-header">
         <div className="streamer-profile">
@@ -156,7 +156,7 @@ export default function StreamPage() {
               <span className="streamer-name">{stream.streamer?.nickname || 'Стример'}</span>
               <span className="online-indicator">●</span>
             </div>
-            <div className="streamer-id">BIGO ID: {stream.streamer?._id?.toString().slice(-10) || 'N/A'}</div>
+            <div className="streamer-id">NIO ID: {stream.streamer?._id?.toString().slice(-10) || 'N/A'}</div>
           </div>
           <div className="streamer-stats">
             <div className="stat-item">
@@ -196,7 +196,7 @@ export default function StreamPage() {
             <StreamPlayer stream={stream} user={user} />
             <div className="video-overlay-gradient">
               <div className="overlay-content">
-                <div className="bigo-logo">BIGO LIVE</div>
+                <div className="nio-logo">NIO</div>
                 <div className="stream-id-overlay">ID: {stream.streamer?._id?.toString().slice(-10) || 'N/A'}</div>
               </div>
             </div>
@@ -251,7 +251,7 @@ export default function StreamPage() {
           <div className="banner-content">
             <div className="banner-mascot">🎥</div>
             <div className="banner-text">
-              <p className="banner-title">Набор ведущих и агентов Bigo Live открыт!</p>
+              <p className="banner-title">Набор ведущих и агентов NIO открыт!</p>
               <p className="banner-subtitle">Безграничные возможности, высокий доход</p>
             </div>
             <button className="banner-join-button">Присоединиться сейчас</button>
@@ -281,7 +281,7 @@ export default function StreamPage() {
       </div>
 
       <style jsx>{`
-        .bigo-stream-page {
+        .nio-stream-page {
           background: #fff;
           min-height: 100vh;
           position: relative;
@@ -457,7 +457,7 @@ export default function StreamPage() {
           color: #fff;
         }
 
-        .bigo-logo {
+        .nio-logo {
           font-size: 24px;
           font-weight: 700;
           margin-bottom: 10px;

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import Head from 'next/head';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import StreamCard from '../components/StreamCard';
@@ -27,9 +28,14 @@ export default function Home() {
   };
 
   return (
-    <div className="container">
+    <>
+      <Head>
+        <title>NIO - Прямые трансляции</title>
+        <meta name="description" content="NIO - платформа для прямых трансляций" />
+      </Head>
+      <div className="container">
       <header className="header">
-        <h1>🎥 Стриминговый Сервис</h1>
+        <h1>🎥 NIO - Прямые трансляции</h1>
         <nav>
           {isAuthenticated ? (
             <>
@@ -185,7 +191,8 @@ export default function Home() {
           box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         }
       `}</style>
-    </div>
+      </div>
+    </>
   );
 }
 

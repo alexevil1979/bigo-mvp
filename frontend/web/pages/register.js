@@ -63,7 +63,7 @@ export default function Register() {
   };
 
   return (
-    <div className="bigo-register-page">
+    <div className="nio-register-page">
       <div className="register-container">
         <h2>Регистрация</h2>
 
@@ -187,7 +187,7 @@ export default function Register() {
       </div>
 
       <style jsx>{`
-        .bigo-register-page {
+        .nio-register-page {
           min-height: 100vh;
           background: #fff;
           display: flex;

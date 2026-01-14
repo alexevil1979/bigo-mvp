@@ -87,7 +87,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="footer-copyright">
-          <p>Copyright © 2024-2026 Bigo Streaming Service. All Rights Reserved.</p>
+          <p>Copyright © 2024-2026 NIO. All Rights Reserved.</p>
           <p><Link href="/legal/agreement">User Agreement</Link> and <Link href="/legal/privacy">Privacy Policy</Link></p>
         </div>
       </div>

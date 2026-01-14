@@ -9,7 +9,17 @@ export default function Chat({ streamId, user }) {
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const emojiPickerRef = useRef(null);
+  const warningIntervalRef = useRef(null);
   const isAuthenticated = !!user;
+
+  // Функция для создания предупреждения
+  const createWarningMessage = () => ({
+    id: `warning-${Date.now()}`,
+    nickname: 'Система',
+    message: 'Мы постоянно следим за качеством трансляций. Если вы курите, употребляете алкоголь, используете нецензурную лексику, ведёте трансляцию обнаженными, нарушаете авторские права, демонстрируете детскую порнографию или жестокое обращение с детьми, то мы будем вынуждены заблокировать Ваш аккаунт.',
+    isWarning: true,
+    timestamp: Date.now()
+  });
 
   // Расширенный список эмодзи
   const emojis = [
@@ -47,8 +57,30 @@ export default function Chat({ streamId, user }) {
       }, 3000);
     });
 
+    // Показываем первое предупреждение сразу при подключении
+    setMessages(prev => [...prev, createWarningMessage()]);
+
+    // Устанавливаем интервал для периодического показа предупреждения (каждые 2 минуты)
+    warningIntervalRef.current = setInterval(() => {
+      setMessages(prev => {
+        // Удаляем старые предупреждения (оставляем только последние 2)
+        const warnings = prev.filter(m => m.isWarning);
+        const otherMessages = prev.filter(m => !m.isWarning);
+        
+        // Добавляем новое предупреждение
+        const newWarning = createWarningMessage();
+        
+        // Оставляем только последнее предупреждение + новое
+        const recentWarnings = warnings.slice(-1);
+        return [...otherMessages, ...recentWarnings, newWarning];
+      });
+    }, 2 * 60 * 1000); // 2 минуты
+
     return () => {
       socket.disconnect();
+      if (warningIntervalRef.current) {
+        clearInterval(warningIntervalRef.current);
+      }
     };
   }, [streamId, user?.id, isAuthenticated]);
 
@@ -104,7 +136,10 @@ export default function Chat({ streamId, user }) {
     <div className="chat-container">
       <div className="chat-messages">
         {messages.map((msg, index) => (
-          <div key={msg.id || index} className="chat-message">
+          <div 
+            key={msg.id || index} 
+            className={`chat-message ${msg.isWarning ? 'warning-message' : ''}`}
+          >
             <span className="chat-nickname">{msg.nickname}:</span>
             <span className="chat-text">{msg.message}</span>
           </div>
@@ -188,6 +223,36 @@ export default function Chat({ streamId, user }) {
           background: #1a1a1a;
           border-radius: 6px;
           word-wrap: break-word;
+        }
+
+        .chat-message.warning-message {
+          background: rgba(255, 193, 7, 0.15);
+          border-left: 4px solid #ffc107;
+          padding: 12px;
+          animation: warningPulse 0.5s ease-out;
+        }
+
+        .chat-message.warning-message .chat-nickname {
+          color: #ffc107;
+        }
+
+        .chat-message.warning-message .chat-text {
+          color: #ffc107;
+          font-weight: 500;
+        }
+
+        @keyframes warningPulse {
+          0% {
+            opacity: 0;
+            transform: translateX(-10px);
+          }
+          50% {
+            transform: translateX(5px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
         }
 
         .chat-nickname {

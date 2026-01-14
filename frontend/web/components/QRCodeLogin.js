@@ -113,7 +113,7 @@ export default function QRCodeLogin() {
         )}
       </div>
       <div className="qr-instructions">
-        <p>1. Откройте приложение BIGO LIVE</p>
+        <p>1. Откройте приложение NIO</p>
         <p>2. Найдите "Сканировать QR-код"</p>
       </div>
       <div className="qr-screenshots">
