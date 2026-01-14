@@ -66,18 +66,36 @@ export default function StreamPlayer({ stream, user }) {
           }
         };
 
-        // Присоединяемся к стриму как зритель
-        socket.emit('join-stream', {
-          streamId: stream._id,
-          userId: userId,
-          isStreamer: false
+        // Ждем подключения socket перед отправкой join-stream
+        socket.on('connect', () => {
+          console.log('Socket подключен, присоединяюсь к стриму');
+          // Присоединяемся к стриму как зритель
+          socket.emit('join-stream', {
+            streamId: stream._id,
+            userId: userId,
+            isStreamer: false
+          });
         });
+
+        // Если уже подключен, отправляем сразу
+        if (socket.connected) {
+          socket.emit('join-stream', {
+            streamId: stream._id,
+            userId: userId,
+            isStreamer: false
+          });
+        }
 
         // Слушаем offer от стримера
         const offerHandler = async (data) => {
           if (data.streamId === stream._id && (data.targetId === userId || !data.targetId)) {
             console.log('Получен offer от стримера:', data);
             try {
+              // Если уже есть remote description, не устанавливаем снова
+              if (pc.remoteDescription) {
+                console.log('Remote description уже установлен, пропускаю');
+                return;
+              }
               await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
               const answer = await pc.createAnswer();
               await pc.setLocalDescription(answer);
@@ -91,7 +109,10 @@ export default function StreamPlayer({ stream, user }) {
               setIsConnected(true);
             } catch (error) {
               console.error('Ошибка обработки offer:', error);
-              setError('Ошибка подключения к стриму');
+              // Если ошибка из-за того, что уже установлен, это нормально
+              if (!error.message.includes('already set')) {
+                setError('Ошибка подключения к стриму');
+              }
             }
           }
         };

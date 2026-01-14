@@ -56,7 +56,37 @@ export default function StreamBroadcaster({ stream, user }) {
         // Слушаем новых зрителей
         socket.on('viewer-joined', async (data) => {
           console.log('Новый зритель присоединился:', data.viewerId);
+          // Очищаем старое соединение, если оно существует (при переподключении)
+          if (peerConnectionsRef.current[data.viewerId]) {
+            console.log('Очищаю старое соединение для зрителя:', data.viewerId);
+            const oldPc = peerConnectionsRef.current[data.viewerId];
+            if (oldPc._answerHandler && socket) {
+              socket.off('webrtc-answer', oldPc._answerHandler);
+            }
+            if (oldPc._iceHandler && socket) {
+              socket.off('webrtc-ice-candidate', oldPc._iceHandler);
+            }
+            oldPc.close();
+            delete peerConnectionsRef.current[data.viewerId];
+          }
           await handleNewViewer(data.viewerId, socket, stream._id);
+        });
+
+        // Слушаем отключение зрителей
+        socket.on('user-disconnected', (data) => {
+          if (data.userId && peerConnectionsRef.current[data.userId]) {
+            console.log('Зритель отключился, очищаю соединение:', data.userId);
+            const pc = peerConnectionsRef.current[data.userId];
+            if (pc._answerHandler && socket) {
+              socket.off('webrtc-answer', pc._answerHandler);
+            }
+            if (pc._iceHandler && socket) {
+              socket.off('webrtc-ice-candidate', pc._iceHandler);
+            }
+            pc.close();
+            delete peerConnectionsRef.current[data.userId];
+            setViewerCount(Object.keys(peerConnectionsRef.current).length);
+          }
         });
       }
 
