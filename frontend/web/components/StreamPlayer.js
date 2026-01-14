@@ -9,7 +9,10 @@ export default function StreamPlayer({ stream, user }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!stream || !user) return;
+    if (!stream) return;
+    
+    // Для неавторизованных пользователей используем временный ID
+    const userId = user?.id || `guest-${socketRef.current?.id || Date.now()}`;
 
     const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
     socketRef.current = socket;

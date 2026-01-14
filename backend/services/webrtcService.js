@@ -25,6 +25,11 @@ const initialize = (socketIo) => {
 
       if (isStreamer) {
         console.log(`📹 Стример ${userId} начал стрим ${streamId}`);
+        // Обновляем heartbeat при присоединении стримера
+        const Stream = require('../models/Stream');
+        Stream.findByIdAndUpdate(streamId, { lastHeartbeat: new Date() }).catch(err => {
+          console.error('Ошибка обновления heartbeat:', err);
+        });
         // Уведомляем всех зрителей о новом стримере
         socket.to(`webrtc-${streamId}`).emit('streamer-joined', {
           streamId,
@@ -102,6 +107,22 @@ const initialize = (socketIo) => {
       }
     });
 
+    // Heartbeat от стримера (для отслеживания активности)
+    socket.on('stream-heartbeat', async (data) => {
+      const { streamId } = data;
+      
+      if (socket.isStreamer && streamId) {
+        const Stream = require('../models/Stream');
+        try {
+          await Stream.findByIdAndUpdate(streamId, { 
+            lastHeartbeat: new Date() 
+          });
+        } catch (error) {
+          console.error('Ошибка обновления heartbeat:', error);
+        }
+      }
+    });
+
     // Отключение от стрима
     socket.on('leave-stream', (data) => {
       const { streamId } = data;
@@ -116,8 +137,14 @@ const initialize = (socketIo) => {
     });
 
     // Отключение
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       if (socket.streamId) {
+        // Если отключился стример, не завершаем стрим сразу
+        // Даем 30 секунд на восстановление соединения (heartbeat)
+        if (socket.isStreamer) {
+          console.log(`⚠️ Стример ${socket.userId} отключился от стрима ${socket.streamId}. Ожидание восстановления...`);
+        }
+        
         io.to(`webrtc-${socket.streamId}`).emit('user-disconnected', {
           userId: socket.userId,
           streamId: socket.streamId

@@ -14,6 +14,7 @@ export default function StreamBroadcaster({ stream, user }) {
   const { token } = useAuth();
   const [isStreaming, setIsStreaming] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
+  const heartbeatIntervalRef = useRef(null);
 
   useEffect(() => {
     if (stream) {
@@ -21,8 +22,11 @@ export default function StreamBroadcaster({ stream, user }) {
     }
 
     return () => {
-      // Не останавливаем стрим при размонтировании компонента
-      // Стрим останавливается только при нажатии кнопки "Завершить стрим"
+      // Очищаем интервал heartbeat при размонтировании
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
     };
   }, [stream]);
 
@@ -68,6 +72,23 @@ export default function StreamBroadcaster({ stream, user }) {
         streamId: stream._id,
         userId: user.id,
         nickname: user.nickname
+      });
+
+      // Начинаем отправку heartbeat каждые 10 секунд
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
+      heartbeatIntervalRef.current = setInterval(() => {
+        if (socketRef.current && socketRef.current.connected) {
+          socketRef.current.emit('stream-heartbeat', {
+            streamId: stream._id
+          });
+        }
+      }, 10 * 1000); // Каждые 10 секунд
+
+      // Отправляем первый heartbeat сразу
+      socketRef.current.emit('stream-heartbeat', {
+        streamId: stream._id
       });
 
       setIsStreaming(true);
@@ -182,6 +203,12 @@ export default function StreamBroadcaster({ stream, user }) {
       pc.close();
     });
     peerConnectionsRef.current = {};
+
+    // Останавливаем heartbeat
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
 
     // Отключаемся от Socket.IO
     if (socketRef.current) {

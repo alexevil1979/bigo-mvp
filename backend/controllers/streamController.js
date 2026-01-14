@@ -30,7 +30,8 @@ exports.createStream = async (req, res) => {
       description: description || '',
       category: category || 'other',
       status: 'live',
-      'webrtc.streamId': uuidv4()
+      'webrtc.streamId': uuidv4(),
+      lastHeartbeat: new Date()
     });
 
     await stream.save();

@@ -89,6 +89,40 @@ app.get('/api/health', (req, res) => {
 chatService.initialize(io);
 webrtcService.initialize(io);
 
+// Автоматическое завершение стримов без heartbeat
+const Stream = require('./models/Stream');
+const checkInactiveStreams = async () => {
+  try {
+    const thirtySecondsAgo = new Date(Date.now() - 30 * 1000);
+    
+    // Находим все активные стримы без heartbeat более 30 секунд
+    const inactiveStreams = await Stream.find({
+      status: 'live',
+      lastHeartbeat: { $lt: thirtySecondsAgo }
+    });
+
+    for (const stream of inactiveStreams) {
+      console.log(`⏰ Автоматическое завершение стрима ${stream._id} (нет heartbeat более 30 секунд)`);
+      await stream.endStream();
+      
+      // Уведомляем всех зрителей о завершении стрима
+      io.to(`webrtc-${stream._id}`).emit('stream-ended', {
+        streamId: stream._id,
+        reason: 'Стрим прервался из-за потери соединения'
+      });
+      io.to(`stream-${stream._id}`).emit('stream-ended', {
+        streamId: stream._id,
+        reason: 'Стрим прервался из-за потери соединения'
+      });
+    }
+  } catch (error) {
+    console.error('Ошибка проверки неактивных стримов:', error);
+  }
+};
+
+// Проверяем неактивные стримы каждые 10 секунд
+setInterval(checkInactiveStreams, 10 * 1000);
+
 // Обработка ошибок
 app.use((err, req, res, next) => {
   console.error('Ошибка:', err);

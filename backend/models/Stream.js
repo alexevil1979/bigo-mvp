@@ -71,6 +71,11 @@ const StreamSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // Последний heartbeat от стримера (для отслеживания активности)
+  lastHeartbeat: {
+    type: Date,
+    default: Date.now
+  },
   // Забанен ли стрим
   isBanned: {
     type: Boolean,
