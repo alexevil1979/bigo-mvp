@@ -4,6 +4,9 @@ import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import StreamBroadcaster from '../../components/StreamBroadcaster';
 
+// Увеличиваем таймаут для axios по умолчанию
+axios.defaults.timeout = 30000; // 30 секунд
+
 export default function CreateStream() {
   const router = useRouter();
   const { user, isAuthenticated, token } = useAuth();

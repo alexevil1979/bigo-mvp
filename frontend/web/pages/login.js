@@ -5,6 +5,9 @@ import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import QRCodeLogin from '../components/QRCodeLogin';
 
+// Увеличиваем таймаут для axios по умолчанию
+axios.defaults.timeout = 30000; // 30 секунд
+
 export default function Login() {
   const router = useRouter();
   const { login } = useAuth();
