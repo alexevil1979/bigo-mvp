@@ -272,20 +272,6 @@ export default function Chat({ streamId, user }) {
           color: #fff;
         }
 
-        @keyframes warningPulse {
-          0% {
-            opacity: 0;
-            transform: translateX(-10px);
-          }
-          50% {
-            transform: translateX(5px);
-          }
-          100% {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
         .chat-nickname {
           color: #6366f1;
           font-weight: 600;
