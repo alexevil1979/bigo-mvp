@@ -6,10 +6,6 @@ import StreamCard from './StreamCard';
 export default function StreamEnded({ stream }) {
   const [recommendedStreams, setRecommendedStreams] = useState([]);
 
-  useEffect(() => {
-    fetchRecommendedStreams();
-  }, []);
-
   const fetchRecommendedStreams = async () => {
     try {
       const response = await axios.get(
