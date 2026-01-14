@@ -236,3 +236,5 @@ MIT
 
 **Пошаговая инструкция для api.bigo.1tlt.ru:** см. [DEPLOY_STEPS.md](./DEPLOY_STEPS.md)
 
+**Как войти в админ-панель:** см. [ADMIN_ACCESS.md](./ADMIN_ACCESS.md)
+

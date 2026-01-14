@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import io from 'socket.io-client';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
+import Chat from './Chat';
 
 export default function StreamBroadcaster({ stream, user }) {
   const videoRef = useRef(null);
@@ -15,40 +16,58 @@ export default function StreamBroadcaster({ stream, user }) {
   const [viewerCount, setViewerCount] = useState(0);
 
   useEffect(() => {
-    startStreaming();
+    if (stream) {
+      startStreaming();
+    }
 
     return () => {
-      stopStreaming();
+      // Не останавливаем стрим при размонтировании компонента
+      // Стрим останавливается только при нажатии кнопки "Завершить стрим"
     };
   }, [stream]);
 
   const startStreaming = async () => {
     try {
-      // Получаем доступ к камере и микрофону
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true
-      });
+      // Проверяем, есть ли уже активный поток (при восстановлении после перезагрузки)
+      if (!localStreamRef.current) {
+        // Получаем доступ к камере и микрофону
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
 
-      localStreamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+        localStreamRef.current = mediaStream;
+      }
+      
+      // Восстанавливаем отображение потока
+      if (videoRef.current && localStreamRef.current) {
+        videoRef.current.srcObject = localStreamRef.current;
       }
 
-      // Подключаемся к Socket.IO
-      const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
-      socketRef.current = socket;
+      // Подключаемся к Socket.IO (если еще не подключены)
+      if (!socketRef.current) {
+        const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
+        socketRef.current = socket;
 
-      // Присоединяемся как стример
-      socket.emit('join-stream', {
+        // Слушаем новых зрителей
+        socket.on('viewer-joined', async (data) => {
+          console.log('Новый зритель присоединился:', data.viewerId);
+          await handleNewViewer(data.viewerId, socket, stream._id);
+        });
+      }
+
+      // Присоединяемся как стример (даже если уже подключены)
+      socketRef.current.emit('join-stream', {
         streamId: stream._id,
         userId: user.id,
         isStreamer: true
       });
 
-      // Слушаем новых зрителей
-      socket.on('viewer-joined', async (data) => {
-        await handleNewViewer(data.viewerId, socket);
+      // Присоединяемся к чату стрима
+      socketRef.current.emit('join-stream-chat', {
+        streamId: stream._id,
+        userId: user.id,
+        nickname: user.nickname
       });
 
       setIsStreaming(true);
@@ -58,52 +77,84 @@ export default function StreamBroadcaster({ stream, user }) {
     }
   };
 
-  const handleNewViewer = async (viewerId, socket) => {
+  const handleNewViewer = async (viewerId, socket, streamId) => {
     try {
+      // Проверяем, нет ли уже соединения с этим зрителем
+      if (peerConnectionsRef.current[viewerId]) {
+        console.log('Соединение с зрителем уже существует:', viewerId);
+        return;
+      }
+
+      console.log('Создаю peer connection для зрителя:', viewerId);
+      
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
       });
 
       // Добавляем локальный поток
-      localStreamRef.current.getTracks().forEach(track => {
-        pc.addTrack(track, localStreamRef.current);
-      });
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => {
+          if (track.readyState === 'live') {
+            pc.addTrack(track, localStreamRef.current);
+          }
+        });
+      }
 
-      // Создаем offer
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      // Отправляем offer зрителю
-      socket.emit('webrtc-offer', {
-        streamId: stream._id,
-        offer: offer,
-        targetId: viewerId
-      });
-
-      // Слушаем answer
-      socket.on('webrtc-answer', async (data) => {
-        if (data.senderId === viewerId && data.streamId === stream._id) {
-          await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-        }
-      });
-
-      // Обработка ICE кандидатов
+      // Обработка ICE кандидатов (до создания offer)
       pc.onicecandidate = (event) => {
         if (event.candidate) {
           socket.emit('webrtc-ice-candidate', {
-            streamId: stream._id,
+            streamId: streamId,
             candidate: event.candidate,
             targetId: viewerId
           });
         }
       };
 
-      socket.on('webrtc-ice-candidate', async (data) => {
-        if (data.senderId === viewerId && data.streamId === stream._id) {
-          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+      // Слушаем answer для этого конкретного зрителя
+      const answerHandler = async (data) => {
+        if (data.senderId === viewerId && data.streamId === streamId) {
+          console.log('Получен answer от зрителя:', viewerId);
+          try {
+            await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+            socket.off('webrtc-answer', answerHandler);
+          } catch (error) {
+            console.error('Ошибка установки remote description:', error);
+          }
         }
+      };
+      socket.on('webrtc-answer', answerHandler);
+
+      // Слушаем ICE кандидаты от зрителя
+      const iceHandler = async (data) => {
+        if (data.senderId === viewerId && data.streamId === streamId) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+          } catch (error) {
+            console.error('Ошибка добавления ICE candidate:', error);
+          }
+        }
+      };
+      socket.on('webrtc-ice-candidate', iceHandler);
+
+      // Создаем offer
+      const offer = await pc.createOffer({
+        offerToReceiveVideo: false,
+        offerToReceiveAudio: false
+      });
+      await pc.setLocalDescription(offer);
+
+      // Отправляем offer зрителю
+      console.log('Отправляю offer зрителю:', viewerId);
+      socket.emit('webrtc-offer', {
+        streamId: streamId,
+        offer: offer,
+        targetId: viewerId
       });
 
+      // Сохраняем обработчики для очистки
+      pc._answerHandler = answerHandler;
+      pc._iceHandler = iceHandler;
       peerConnectionsRef.current[viewerId] = pc;
 
       // Обновляем количество зрителей
@@ -117,16 +168,26 @@ export default function StreamBroadcaster({ stream, user }) {
     // Останавливаем все треки
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
     }
 
     // Закрываем все peer connections
-    Object.values(peerConnectionsRef.current).forEach(pc => pc.close());
+    Object.values(peerConnectionsRef.current).forEach(pc => {
+      if (pc._answerHandler && socketRef.current) {
+        socketRef.current.off('webrtc-answer', pc._answerHandler);
+      }
+      if (pc._iceHandler && socketRef.current) {
+        socketRef.current.off('webrtc-ice-candidate', pc._iceHandler);
+      }
+      pc.close();
+    });
     peerConnectionsRef.current = {};
 
     // Отключаемся от Socket.IO
     if (socketRef.current) {
       socketRef.current.emit('leave-stream', { streamId: stream._id });
       socketRef.current.disconnect();
+      socketRef.current = null;
     }
 
     // Завершаем стрим на сервере
@@ -147,24 +208,29 @@ export default function StreamBroadcaster({ stream, user }) {
   };
 
   return (
-    <div className="broadcaster-container">
-      <div className="broadcaster-header">
-        <h2>{stream.title}</h2>
-        <div className="stream-stats">
-          <span>👁️ {viewerCount} зрителей</span>
-          <button onClick={stopStreaming} className="stop-button">
-            Завершить стрим
-          </button>
+    <div className="broadcaster-page">
+      <div className="broadcaster-container">
+        <div className="broadcaster-header">
+          <h2>{stream.title}</h2>
+          <div className="stream-stats">
+            <span>👁️ {viewerCount} зрителей</span>
+            <button onClick={stopStreaming} className="stop-button">
+              Завершить стрим
+            </button>
+          </div>
         </div>
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="broadcaster-video"
+        />
+        {!isStreaming && <div className="loading">Запуск стрима...</div>}
       </div>
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="broadcaster-video"
-      />
-      {!isStreaming && <div className="loading">Запуск стрима...</div>}
+      <div className="broadcaster-sidebar">
+        <Chat streamId={stream._id} user={user} />
+      </div>
     </div>
   );
 }

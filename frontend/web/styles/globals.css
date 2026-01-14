@@ -172,6 +172,16 @@ body {
   padding: 20px;
 }
 
+/* Broadcaster Page */
+.broadcaster-page {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 20px;
+  padding: 20px;
+  min-height: 100vh;
+  background-color: #0a0a0a;
+}
+
 .stream-container {
   background-color: #1a1a1a;
   border-radius: 8px;

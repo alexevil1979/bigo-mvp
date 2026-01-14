@@ -48,24 +48,26 @@ const initialize = (socketIo) => {
       socket.to(`webrtc-${streamId}`).emit('webrtc-offer', {
         offer,
         senderId: socket.userId,
-        streamId
+        streamId,
+        targetId: targetId || data.targetId
       });
 
-      console.log(`📤 WebRTC Offer отправлен в стриме ${streamId}`);
+      console.log(`📤 WebRTC Offer отправлен в стриме ${streamId} для пользователя ${targetId}`);
     });
 
     // WebRTC Answer (ответ на предложение)
     socket.on('webrtc-answer', (data) => {
       const { streamId, answer, targetId } = data;
 
-      // Отправляем answer целевому пользователю
+      // Отправляем answer целевому пользователю (стримеру)
       socket.to(`webrtc-${streamId}`).emit('webrtc-answer', {
         answer,
         senderId: socket.userId,
-        streamId
+        streamId,
+        targetId: targetId || data.targetId
       });
 
-      console.log(`📥 WebRTC Answer отправлен в стриме ${streamId}`);
+      console.log(`📥 WebRTC Answer отправлен в стриме ${streamId} от ${socket.userId} для ${targetId}`);
     });
 
     // ICE Candidate (кандидаты для установки соединения)
@@ -76,7 +78,8 @@ const initialize = (socketIo) => {
       socket.to(`webrtc-${streamId}`).emit('webrtc-ice-candidate', {
         candidate,
         senderId: socket.userId,
-        streamId
+        streamId,
+        targetId: targetId || data.targetId
       });
     });
 

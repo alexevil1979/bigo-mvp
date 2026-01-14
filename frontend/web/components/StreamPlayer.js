@@ -27,8 +27,28 @@ export default function StreamPlayer({ stream, user }) {
 
         // Обработка входящего потока
         pc.ontrack = (event) => {
+          console.log('Получен трек от стримера:', event);
           if (videoRef.current) {
-            videoRef.current.srcObject = event.streams[0];
+            if (event.streams && event.streams[0]) {
+              videoRef.current.srcObject = event.streams[0];
+            } else if (event.track) {
+              // Альтернативный способ получения потока
+              const stream = new MediaStream([event.track]);
+              videoRef.current.srcObject = stream;
+            }
+            setIsConnected(true);
+            setError('');
+          }
+        };
+        
+        // Обработка изменения состояния соединения
+        pc.onconnectionstatechange = () => {
+          console.log('WebRTC connection state:', pc.connectionState);
+          if (pc.connectionState === 'connected') {
+            setIsConnected(true);
+            setError('');
+          } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+            setError('Соединение потеряно');
           }
         };
 
@@ -51,19 +71,28 @@ export default function StreamPlayer({ stream, user }) {
         });
 
         // Слушаем offer от стримера
-        socket.on('webrtc-offer', async (data) => {
-          if (data.streamId === stream._id) {
-            await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
+        const offerHandler = async (data) => {
+          if (data.streamId === stream._id && (data.targetId === user.id || !data.targetId)) {
+            console.log('Получен offer от стримера:', data);
+            try {
+              await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
 
-            socket.emit('webrtc-answer', {
-              streamId: stream._id,
-              answer: answer,
-              targetId: data.senderId
-            });
+              console.log('Отправляю answer стримеру:', data.senderId);
+              socket.emit('webrtc-answer', {
+                streamId: stream._id,
+                answer: answer,
+                targetId: data.senderId || stream.streamer._id
+              });
+              setIsConnected(true);
+            } catch (error) {
+              console.error('Ошибка обработки offer:', error);
+              setError('Ошибка подключения к стриму');
+            }
           }
-        });
+        };
+        socket.on('webrtc-offer', offerHandler);
 
         // Слушаем answer
         socket.on('webrtc-answer', async (data) => {
@@ -74,8 +103,12 @@ export default function StreamPlayer({ stream, user }) {
 
         // Слушаем ICE кандидаты
         socket.on('webrtc-ice-candidate', async (data) => {
-          if (data.streamId === stream._id) {
-            await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+          if (data.streamId === stream._id && (data.targetId === user.id || data.senderId === stream.streamer._id)) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+            } catch (error) {
+              console.error('Ошибка добавления ICE candidate:', error);
+            }
           }
         });
 
@@ -93,6 +126,9 @@ export default function StreamPlayer({ stream, user }) {
         peerConnectionRef.current.close();
       }
       if (socketRef.current) {
+        socketRef.current.off('webrtc-offer');
+        socketRef.current.off('webrtc-answer');
+        socketRef.current.off('webrtc-ice-candidate');
         socketRef.current.disconnect();
       }
     };

@@ -19,8 +19,37 @@ export default function CreateStream() {
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login');
+      return;
     }
-  }, [isAuthenticated]);
+
+    // Проверяем, есть ли активный стрим
+    const checkActiveStream = async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams/my/active`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+
+        if (response.data.stream) {
+          // Найден активный стрим - продолжаем его
+          setStream(response.data.stream);
+        }
+      } catch (err) {
+        // Активного стрима нет - это нормально
+        if (err.response?.status !== 404) {
+          console.error('Ошибка проверки активного стрима:', err);
+        }
+      }
+    };
+
+    if (token) {
+      checkActiveStream();
+    }
+  }, [isAuthenticated, token]);
 
   const handleChange = (e) => {
     setFormData({

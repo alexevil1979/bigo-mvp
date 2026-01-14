@@ -104,6 +104,28 @@ exports.getStream = async (req, res) => {
 };
 
 /**
+ * Получение активного стрима пользователя
+ */
+exports.getMyActiveStream = async (req, res) => {
+  try {
+    const stream = await Stream.findOne({
+      streamer: req.user._id,
+      status: 'live'
+    })
+    .populate('streamer', 'nickname avatar beans stats');
+
+    if (!stream) {
+      return res.status(404).json({ error: 'Активный стрим не найден' });
+    }
+
+    res.json({ stream });
+  } catch (error) {
+    console.error('Ошибка получения активного стрима:', error);
+    res.status(500).json({ error: 'Ошибка при получении активного стрима' });
+  }
+};
+
+/**
  * Завершение стрима
  */
 exports.endStream = async (req, res) => {

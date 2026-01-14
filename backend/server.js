@@ -33,19 +33,45 @@ const io = socketIo(server, {
 
 // Middleware
 app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(',') || '*',
-  credentials: true
+  origin: function (origin, callback) {
+    const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map(o => o.trim()) || ['*'];
+    
+    // Разрешаем запросы без origin (например, Postman, мобильные приложения)
+    if (!origin) return callback(null, true);
+    
+    // Если разрешены все источники
+    if (allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+    
+    // Проверяем, есть ли origin в списке разрешенных
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Подключение к MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/streaming-mvp', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/streaming-mvp';
+
+mongoose.connect(mongoUri)
+.then(() => {
+  console.log('✅ MongoDB подключена');
+  console.log(`📊 База данных: ${mongoose.connection.name}`);
 })
-.then(() => console.log('✅ MongoDB подключена'))
-.catch(err => console.error('❌ Ошибка подключения к MongoDB:', err));
+.catch(err => {
+  console.error('❌ Ошибка подключения к MongoDB:', err);
+  console.error('💡 Проверь MONGODB_URI в .env файле');
+  process.exit(1);
+});
 
 // API маршруты
 app.use('/api/auth', authRoutes);
