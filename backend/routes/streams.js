@@ -11,6 +11,7 @@ router.get('/:id', streamController.getStream);
 router.get('/my/active', authenticate, streamController.getMyActiveStream);
 router.post('/', authenticate, streamController.createStream);
 router.post('/:id/end', authenticate, streamController.endStream);
+router.post('/my/end', authenticate, streamController.endMyActiveStream);
 router.put('/viewers', authenticate, streamController.updateViewerCount);
 
 module.exports = router;

@@ -16,6 +16,7 @@ export default function CreateStream() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingActive, setCheckingActive] = useState(true);
+  const [stuckStream, setStuckStream] = useState(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -60,6 +61,30 @@ export default function CreateStream() {
 
     checkActiveStream();
   }, [isAuthenticated, token, router]);
+
+  // Функция для завершения зависшего стрима
+  const handleEndStuckStream = async () => {
+    if (!token) return;
+    
+    try {
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams/my/end`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      setStuckStream(null);
+      // Обновляем страницу для проверки активного стрима
+      window.location.reload();
+    } catch (err) {
+      console.error('Ошибка завершения зависшего стрима:', err);
+      setError(err.response?.data?.error || 'Ошибка завершения стрима');
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -121,6 +146,14 @@ export default function CreateStream() {
       <div className="create-stream-form">
         <h2>Создать стрим</h2>
         {error && <div className="error">{error}</div>}
+        {stuckStream && (
+          <div className="stuck-stream-warning">
+            <p>Обнаружен зависший стрим. Он будет автоматически завершен через несколько секунд.</p>
+            <button onClick={handleEndStuckStream} className="end-stuck-button">
+              Завершить зависший стрим сейчас
+            </button>
+          </div>
+        )}
         <form onSubmit={handleCreateStream}>
           <input
             type="text"

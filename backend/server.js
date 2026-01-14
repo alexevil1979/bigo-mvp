@@ -96,13 +96,23 @@ const checkInactiveStreams = async () => {
     const thirtySecondsAgo = new Date(Date.now() - 30 * 1000);
     
     // Находим все активные стримы без heartbeat более 30 секунд
+    // Включая стримы, у которых lastHeartbeat null или очень старый
     const inactiveStreams = await Stream.find({
       status: 'live',
-      lastHeartbeat: { $lt: thirtySecondsAgo }
+      $or: [
+        { lastHeartbeat: { $lt: thirtySecondsAgo } },
+        { lastHeartbeat: null },
+        { lastHeartbeat: { $exists: false } }
+      ]
     });
 
     for (const stream of inactiveStreams) {
-      console.log(`⏰ Автоматическое завершение стрима ${stream._id} (нет heartbeat более 30 секунд)`);
+      const lastHeartbeat = stream.lastHeartbeat;
+      const timeSinceHeartbeat = lastHeartbeat 
+        ? Math.floor((Date.now() - lastHeartbeat.getTime()) / 1000)
+        : 'неизвестно';
+      
+      console.log(`⏰ Автоматическое завершение стрима ${stream._id} (нет heartbeat: ${timeSinceHeartbeat} секунд)`);
       await stream.endStream();
       
       // Уведомляем всех зрителей о завершении стрима

@@ -119,6 +119,15 @@ exports.getMyActiveStream = async (req, res) => {
       return res.status(404).json({ error: 'Активный стрим не найден' });
     }
 
+    // Проверяем, не завис ли стрим (нет heartbeat более 30 секунд)
+    const thirtySecondsAgo = new Date(Date.now() - 30 * 1000);
+    if (!stream.lastHeartbeat || stream.lastHeartbeat < thirtySecondsAgo) {
+      // Стрим завис - автоматически завершаем его
+      console.log(`⚠️ Найден зависший стрим ${stream._id}, завершаем автоматически`);
+      await stream.endStream();
+      return res.status(404).json({ error: 'Активный стрим не найден' });
+    }
+
     res.json({ stream });
   } catch (error) {
     console.error('Ошибка получения активного стрима:', error);
@@ -149,6 +158,29 @@ exports.endStream = async (req, res) => {
     res.json({ message: 'Стрим завершен', stream });
   } catch (error) {
     console.error('Ошибка завершения стрима:', error);
+    res.status(500).json({ error: 'Ошибка при завершении стрима' });
+  }
+};
+
+/**
+ * Завершение любого активного стрима пользователя (для зависших стримов)
+ */
+exports.endMyActiveStream = async (req, res) => {
+  try {
+    const stream = await Stream.findOne({
+      streamer: req.user._id,
+      status: 'live'
+    });
+
+    if (!stream) {
+      return res.status(404).json({ error: 'Активный стрим не найден' });
+    }
+
+    await stream.endStream();
+
+    res.json({ message: 'Стрим завершен', stream });
+  } catch (error) {
+    console.error('Ошибка завершения активного стрима:', error);
     res.status(500).json({ error: 'Ошибка при завершении стрима' });
   }
 };
