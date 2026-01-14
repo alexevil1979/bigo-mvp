@@ -4,9 +4,9 @@ const nextConfig = {
   // PWA конфигурация
   // Для полной PWA поддержки установите next-pwa
   env: {
-    API_URL: process.env.API_URL || 'http://localhost:5000',
-    SOCKET_URL: process.env.SOCKET_URL || 'http://localhost:5000',
-    STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
+    NEXT_PUBLIC_API_URL: process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+    NEXT_PUBLIC_SOCKET_URL: process.env.SOCKET_URL || process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000',
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
   }
 };
 

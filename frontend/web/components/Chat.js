@@ -10,7 +10,7 @@ export default function Chat({ streamId, user }) {
   useEffect(() => {
     if (!streamId || !user) return;
 
-    const socket = io(process.env.SOCKET_URL || 'http://localhost:5000');
+    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
     socketRef.current = socket;
 
     // Присоединяемся к чату стрима

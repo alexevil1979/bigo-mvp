@@ -20,7 +20,7 @@ export default function GiftPanel({ streamId, user }) {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    const socket = io(process.env.SOCKET_URL || 'http://localhost:5000');
+    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
     socketRef.current = socket;
 
     // Слушаем подарки
@@ -50,7 +50,7 @@ export default function GiftPanel({ streamId, user }) {
     // Получаем информацию о стриме для определения получателя
     try {
       const streamResponse = await axios.get(
-        `${process.env.API_URL || 'http://localhost:5000'}/api/streams/${streamId}`
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams/${streamId}`
       );
       const recipientId = streamResponse.data.stream.streamer._id;
 

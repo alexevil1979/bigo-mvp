@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import { useAuth } from '../../../contexts/AuthContext';
-import StreamPlayer from '../../../components/StreamPlayer';
-import Chat from '../../../components/Chat';
-import GiftPanel from '../../../components/GiftPanel';
+import { useAuth } from '../../contexts/AuthContext';
+import StreamPlayer from '../../components/StreamPlayer';
+import Chat from '../../components/Chat';
+import GiftPanel from '../../components/GiftPanel';
 
 export default function StreamPage() {
   const router = useRouter();
@@ -22,7 +22,7 @@ export default function StreamPage() {
   const fetchStream = async () => {
     try {
       const response = await axios.get(
-        `${process.env.API_URL || 'http://localhost:5000'}/api/streams/${id}`
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams/${id}`
       );
       setStream(response.data.stream);
     } catch (error) {

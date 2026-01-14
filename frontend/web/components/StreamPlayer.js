@@ -11,7 +11,7 @@ export default function StreamPlayer({ stream, user }) {
   useEffect(() => {
     if (!stream || !user) return;
 
-    const socket = io(process.env.SOCKET_URL || 'http://localhost:5000');
+    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
     socketRef.current = socket;
 
     // Настройка WebRTC

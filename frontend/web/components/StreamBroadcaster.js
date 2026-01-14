@@ -36,7 +36,7 @@ export default function StreamBroadcaster({ stream, user }) {
       }
 
       // Подключаемся к Socket.IO
-      const socket = io(process.env.SOCKET_URL || 'http://localhost:5000');
+      const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
       socketRef.current = socket;
 
       // Присоединяемся как стример
@@ -132,7 +132,7 @@ export default function StreamBroadcaster({ stream, user }) {
     // Завершаем стрим на сервере
     try {
       await axios.post(
-        `${process.env.API_URL || 'http://localhost:5000'}/api/streams/${stream._id}/end`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams/${stream._id}/end`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` }

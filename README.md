@@ -230,3 +230,9 @@ MIT
 
 **Подробная инструкция по установке:** см. [INSTALLATION.md](./INSTALLATION.md)
 
+**Инструкция по деплою на сервер:** см. [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+**Деплой на домашний сервер Ubuntu:** см. [DEPLOYMENT_HOME_SERVER.md](./DEPLOYMENT_HOME_SERVER.md)
+
+**Пошаговая инструкция для api.bigo.1tlt.ru:** см. [DEPLOY_STEPS.md](./DEPLOY_STEPS.md)
+

@@ -17,7 +17,7 @@ export default function Home() {
 
   const fetchStreams = async () => {
     try {
-      const response = await axios.get(`${process.env.API_URL || 'http://localhost:5000'}/api/streams`);
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams`);
       setStreams(response.data.streams || []);
     } catch (error) {
       console.error('Ошибка загрузки стримов:', error);
