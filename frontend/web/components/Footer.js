@@ -78,11 +78,11 @@ export default function Footer() {
         <div className="footer-download">
           <h3>СКАЧАЙТЕ ПРИЛОЖЕНИЕ!</h3>
           <div className="app-badges">
-            <a href="#" className="app-badge">
-              <img src="/app-store-badge.svg" alt="Download on the App Store" />
+            <a href="https://apps.apple.com/app/bigo-live/id1112133309" target="_blank" rel="noopener noreferrer" className="app-badge">
+              <span>📱 App Store</span>
             </a>
-            <a href="#" className="app-badge">
-              <img src="/google-play-badge.svg" alt="GET IT ON Google Play" />
+            <a href="https://play.google.com/store/apps/details?id=com.bigo.live" target="_blank" rel="noopener noreferrer" className="app-badge">
+              <span>📱 Google Play</span>
             </a>
           </div>
         </div>
@@ -203,18 +203,25 @@ export default function Footer() {
         }
 
         .app-badge {
-          display: block;
-          height: 40px;
-          transition: transform 0.2s;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 10px 20px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: #fff;
+          text-decoration: none;
+          border-radius: 8px;
+          font-weight: 600;
+          transition: all 0.2s;
         }
 
         .app-badge:hover {
-          transform: scale(1.05);
+          opacity: 0.9;
+          transform: translateY(-2px);
         }
 
-        .app-badge img {
-          height: 100%;
-          width: auto;
+        .app-badge span {
+          font-size: 14px;
         }
 
         .footer-copyright {

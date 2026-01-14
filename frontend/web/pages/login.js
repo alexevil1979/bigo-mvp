@@ -144,7 +144,7 @@ export default function Login() {
             rel="noopener noreferrer"
             className="app-store-button"
           >
-            <img src="/app-store-badge.svg" alt="Download on the App Store" />
+            <span>📱 App Store</span>
           </a>
           <a 
             href="https://play.google.com/store/apps/details?id=com.bigo.live" 
@@ -152,7 +152,7 @@ export default function Login() {
             rel="noopener noreferrer"
             className="google-play-button"
           >
-            <img src="/google-play-badge.svg" alt="GET IT ON Google Play" />
+            <span>📱 Google Play</span>
           </a>
         </div>
       </div>
@@ -356,14 +356,27 @@ export default function Login() {
 
         .app-store-button,
         .google-play-button {
-          display: inline-block;
-          height: 50px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 12px 24px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: #fff;
+          text-decoration: none;
+          border-radius: 8px;
+          font-weight: 600;
+          transition: all 0.2s;
         }
 
-        .app-store-button img,
-        .google-play-button img {
-          height: 100%;
-          width: auto;
+        .app-store-button:hover,
+        .google-play-button:hover {
+          opacity: 0.9;
+          transform: translateY(-2px);
+        }
+
+        .app-store-button span,
+        .google-play-button span {
+          font-size: 16px;
         }
 
         .error {

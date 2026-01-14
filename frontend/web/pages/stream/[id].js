@@ -12,15 +12,32 @@ export default function StreamPage() {
   const router = useRouter();
   const { id } = router.query;
   const { user, isAuthenticated, token } = useAuth();
+  
+  // Все хуки должны быть в начале, до любых условных возвратов
   const [stream, setStream] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isStreamer, setIsStreamer] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [showBanner, setShowBanner] = useState(true);
+  const [bottomChatInput, setBottomChatInput] = useState('');
+  const socketRef = useRef(null);
 
   useEffect(() => {
     if (id) {
       fetchStream();
     }
   }, [id, user?.id]);
+
+  useEffect(() => {
+    if (!id || !isAuthenticated) return;
+
+    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
+    socketRef.current = socket;
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [id, isAuthenticated]);
 
   const fetchStream = async () => {
     try {
@@ -69,6 +86,7 @@ export default function StreamPage() {
     }
   };
 
+  // Условные возвраты только после всех хуков
   if (loading) {
     return <div className="container">Загрузка...</div>;
   }
@@ -81,22 +99,6 @@ export default function StreamPage() {
   if (isStreamer && isAuthenticated) {
     return <StreamBroadcaster stream={stream} user={user} />;
   }
-
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [showBanner, setShowBanner] = useState(true);
-  const [bottomChatInput, setBottomChatInput] = useState('');
-  const socketRef = useRef(null);
-
-  useEffect(() => {
-    if (!id || !isAuthenticated) return;
-
-    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
-    socketRef.current = socket;
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [id, isAuthenticated]);
 
   const handleShare = () => {
     if (navigator.share) {
