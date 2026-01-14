@@ -22,6 +22,7 @@ export default function StreamEnded({ stream }) {
 
   useEffect(() => {
     fetchRecommendedStreams();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
