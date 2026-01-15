@@ -14,6 +14,8 @@ const userRoutes = require('./routes/users');
 const streamRoutes = require('./routes/streams');
 const paymentRoutes = require('./routes/payments');
 const adminRoutes = require('./routes/admin');
+const contentRoutes = require('./routes/content');
+const settingsRoutes = require('./routes/settings');
 
 // Импорт сервисов
 const chatService = require('./services/chatService');
@@ -85,6 +87,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/streams', streamRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/content', contentRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

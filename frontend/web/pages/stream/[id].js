@@ -9,6 +9,7 @@ import StreamBroadcaster from '../../components/StreamBroadcaster';
 import StreamEnded from '../../components/StreamEnded';
 import Chat from '../../components/Chat';
 import GiftPanel from '../../components/GiftPanel';
+import Header from '../../components/Header';
 import io from 'socket.io-client';
 
 export default function StreamPage() {
@@ -172,26 +173,7 @@ export default function StreamPage() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <div className="container">
-        <header className="header">
-          <h1><img src="/favicon.ico" alt="NIO" className="logo-icon" /> NIO - LIVE</h1>
-          <nav>
-            <Link href="/">Главная</Link>
-            {isAuthenticated ? (
-              <>
-                <span className="user-info">
-                  👤 {user?.nickname || 'Пользователь'}
-                </span>
-                <Link href="/profile">Профиль</Link>
-                <Link href="/stream/create">Начать стрим</Link>
-              </>
-            ) : (
-              <>
-                <Link href="/login">Вход</Link>
-                <Link href="/register">Регистрация</Link>
-              </>
-            )}
-          </nav>
-        </header>
+        <Header />
       </div>
       <div className="nio-stream-page">
         {/* Верхняя панель с профилем стримера */}
@@ -759,6 +741,84 @@ export default function StreamPage() {
             right: auto;
             top: auto;
             width: 100%;
+            height: auto;
+            max-height: none;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .container {
+            padding: 10px;
+          }
+
+          .nio-stream-page {
+            padding: 10px;
+          }
+
+          .stream-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 15px;
+          }
+
+          .streamer-profile {
+            width: 100%;
+            flex-wrap: wrap;
+          }
+
+          .streamer-stats {
+            margin-left: 0;
+            width: 100%;
+            justify-content: space-around;
+          }
+
+          .stream-actions {
+            width: 100%;
+            flex-direction: column;
+          }
+
+          .share-button,
+          .subscribe-button {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .video-wrapper {
+            min-height: 250px;
+            aspect-ratio: 9 / 16;
+          }
+
+          .stream-main-content {
+            grid-template-columns: 1fr;
+            gap: 15px;
+          }
+
+          .stream-sidebar {
+            position: relative;
+            right: auto;
+            top: auto;
+            width: 100%;
+            height: auto;
+            max-height: none;
+          }
+
+          .stream-bottom-panel {
+            padding: 10px;
+          }
+
+          .chat-input-field {
+            font-size: 16px; /* Предотвращает зум на iOS */
+          }
+
+          .floating-buttons {
+            bottom: 20px;
+            right: 20px;
+          }
+
+          .floating-button {
+            width: 45px;
+            height: 45px;
           }
         }
       `}</style>

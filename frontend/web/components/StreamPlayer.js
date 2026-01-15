@@ -238,7 +238,7 @@ export default function StreamPlayer({ stream, user }) {
   return (
     <div className="stream-player">
       {error && <div className="error">{error}</div>}
-      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '300px' }}>
         <video
           ref={videoRef}
           autoPlay
@@ -246,6 +246,12 @@ export default function StreamPlayer({ stream, user }) {
           controls
           muted={false}
           className="video-player"
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            backgroundColor: '#000'
+          }}
           onLoadedMetadata={() => {
             if (videoRef.current && videoRef.current.paused) {
               videoRef.current.play().catch(err => {

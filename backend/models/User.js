@@ -23,6 +23,20 @@ const UserSchema = new mongoose.Schema({
     minlength: [3, 'Никнейм должен быть минимум 3 символа'],
     maxlength: [20, 'Никнейм не должен превышать 20 символов']
   },
+  name: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'secret', null],
+    default: null
+  },
+  dateOfBirth: {
+    type: Date,
+    default: null
+  },
   avatar: {
     type: String,
     default: null

@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
+import Header from '../components/Header';
 
 export default function Profile() {
   const router = useRouter();
@@ -65,14 +66,7 @@ export default function Profile() {
 
   return (
     <div className="container">
-      <header className="header">
-        <h1><img src="/favicon.ico" alt="NIO" className="logo-icon" /> NIO - LIVE</h1>
-        <nav>
-          <Link href="/">Главная</Link>
-          <Link href="/stream/create">Начать стрим</Link>
-          <button onClick={handleLogout} className="logout-btn">Выход</button>
-        </nav>
-      </header>
+      <Header />
 
       <main className="profile-page">
         <div className="profile-container">
@@ -110,6 +104,9 @@ export default function Profile() {
           </div>
 
           <div className="profile-actions">
+            <Link href="/profile/edit" className="action-button">
+              Редактировать профиль
+            </Link>
             <Link href="/stream/create" className="action-button">
               Начать стрим
             </Link>

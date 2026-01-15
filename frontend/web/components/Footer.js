@@ -245,58 +245,77 @@ export default function Footer() {
 
         @media (max-width: 768px) {
           .footer {
-            padding: 40px 15px 20px;
+            padding: 30px 15px 20px;
           }
 
           .footer-content {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 25px;
+            grid-template-columns: 1fr;
+            gap: 30px;
             margin-bottom: 30px;
           }
 
+          .footer-column {
+            text-align: center;
+          }
+
           .footer-column h3 {
-            font-size: 14px;
+            font-size: 16px;
             margin-bottom: 15px;
+            text-align: center;
+          }
+
+          .footer-column ul {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
           }
 
           .footer-column a {
-            font-size: 12px;
+            font-size: 14px;
+            padding: 5px 0;
           }
 
           .footer-bottom {
             flex-direction: column;
             text-align: center;
-            gap: 20px;
+            gap: 25px;
             padding-top: 30px;
           }
 
+          .footer-download {
+            width: 100%;
+          }
+
           .footer-download h3 {
-            font-size: 16px;
-            margin-bottom: 12px;
+            font-size: 18px;
+            margin-bottom: 15px;
           }
 
           .app-badges {
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
+            flex-wrap: wrap;
           }
 
           .app-badge {
-            padding: 8px 16px;
-            font-size: 12px;
+            padding: 10px 20px;
+            font-size: 14px;
           }
 
           .footer-copyright {
             text-align: center;
-            font-size: 11px;
+            font-size: 12px;
+            width: 100%;
           }
 
           .social-links {
             justify-content: center;
+            gap: 12px;
           }
 
           .social-icon {
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
           }
         }
       `}</style>

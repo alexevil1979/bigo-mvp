@@ -143,6 +143,9 @@ exports.getMe = async (req, res) => {
         id: user._id,
         email: user.email,
         nickname: user.nickname,
+        name: user.name,
+        gender: user.gender,
+        dateOfBirth: user.dateOfBirth,
         avatar: user.avatar,
         coins: user.coins,
         beans: user.beans,
@@ -162,7 +165,7 @@ exports.getMe = async (req, res) => {
  */
 exports.updateProfile = async (req, res) => {
   try {
-    const { nickname, avatar } = req.body;
+    const { nickname, name, gender, dateOfBirth, avatar } = req.body;
     const user = await User.findById(req.user.id);
 
     if (nickname && nickname !== user.nickname) {
@@ -172,6 +175,18 @@ exports.updateProfile = async (req, res) => {
         return res.status(400).json({ error: 'Никнейм уже занят' });
       }
       user.nickname = nickname;
+    }
+
+    if (name !== undefined) {
+      user.name = name;
+    }
+
+    if (gender !== undefined) {
+      user.gender = gender;
+    }
+
+    if (dateOfBirth !== undefined) {
+      user.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
     }
 
     if (avatar) {
@@ -186,6 +201,9 @@ exports.updateProfile = async (req, res) => {
         id: user._id,
         email: user.email,
         nickname: user.nickname,
+        name: user.name,
+        gender: user.gender,
+        dateOfBirth: user.dateOfBirth,
         avatar: user.avatar,
         coins: user.coins,
         beans: user.beans,

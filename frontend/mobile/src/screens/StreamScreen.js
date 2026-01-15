@@ -47,13 +47,42 @@ export default function StreamScreen({ route }) {
       const socket = io(API_URL);
       socketRef.current = socket;
 
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-      });
+      // Настройка ICE серверов с TURN, если доступен
+      const iceServers = [
+        { urls: 'stun:stun.l.google.com:19302' }
+      ];
+      
+      // Добавляем TURN сервер из переменных окружения, если есть
+      // В React Native можно использовать react-native-config или передавать через API
+      // Для мобильных устройств TURN критически важен
+      if (process.env.WEBRTC_TURN_SERVER) {
+        iceServers.push({
+          urls: process.env.WEBRTC_TURN_SERVER,
+          username: process.env.WEBRTC_TURN_USERNAME || '',
+          credential: process.env.WEBRTC_TURN_PASSWORD || ''
+        });
+      }
+
+      const pc = new RTCPeerConnection({ iceServers });
       peerConnectionRef.current = pc;
 
-      pc.onaddstream = (event) => {
-        setRemoteStream(event.stream);
+      // Используем ontrack вместо устаревшего onaddstream
+      pc.ontrack = (event) => {
+        console.log('Получен трек:', event);
+        if (event.streams && event.streams[0]) {
+          setRemoteStream(event.streams[0]);
+        } else if (event.track) {
+          const stream = new MediaStream([event.track]);
+          setRemoteStream(stream);
+        }
+      };
+
+      // Обработка изменения состояния соединения
+      pc.onconnectionstatechange = () => {
+        console.log('WebRTC connection state:', pc.connectionState);
+        if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+          console.error('WebRTC соединение потеряно');
+        }
       };
 
       pc.onicecandidate = (event) => {

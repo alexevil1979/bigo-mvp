@@ -6,19 +6,27 @@ import axios from '../lib/axios';
 import io from 'socket.io-client';
 import { useAuth } from '../contexts/AuthContext';
 import StreamCard from '../components/StreamCard';
+import Header from '../components/Header';
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
   const [streams, setStreams] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const socketRef = useRef(null);
 
   const fetchStreams = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams`);
       // Фильтруем только активные стримы
-      const activeStreams = (response.data.streams || []).filter(s => s.status === 'live');
+      let activeStreams = (response.data.streams || []).filter(s => s.status === 'live');
+      
+      // Применяем фильтр по категории
+      if (selectedCategory !== 'all') {
+        activeStreams = activeStreams.filter(s => s.category === selectedCategory);
+      }
+      
       setStreams(activeStreams);
     } catch (error) {
       console.error('Ошибка загрузки стримов:', error);
@@ -46,7 +54,12 @@ export default function Home() {
             // Проверяем, нет ли уже такого стрима
             const exists = prevStreams.some(s => s._id === data.stream._id);
             if (!exists) {
-              return [data.stream, ...prevStreams];
+              const newStreams = [data.stream, ...prevStreams];
+              // Применяем фильтр по категории
+              if (selectedCategory !== 'all') {
+                return newStreams.filter(s => s.category === selectedCategory);
+              }
+              return newStreams;
             }
             return prevStreams;
           });
@@ -60,7 +73,7 @@ export default function Home() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedCategory]);
 
   return (
     <>
@@ -70,36 +83,42 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <div className="container">
-      <header className="header">
-        <h1><img src="/favicon.ico" alt="NIO" className="logo-icon" /> NIO - LIVE</h1>
-        <nav>
-          {isAuthenticated ? (
-            <>
-              <span className="user-info">
-                👤 {user?.nickname || 'Пользователь'}
-              </span>
-              <Link href="/profile">Профиль</Link>
-              <Link href="/stream/create">Начать стрим</Link>
-              <Link href="/logout">Выход</Link>
-            </>
-          ) : (
-            <>
-              <Link href="/login">Вход</Link>
-              <Link href="/register">Регистрация</Link>
-            </>
-          )}
-        </nav>
-      </header>
+      <Header />
 
       <main className="main-content">
         <div className="main-header">
           <h2>LIVE стримы</h2>
           <div className="stream-tabs">
-            <button className="tab active">Все</button>
-            <button className="tab">Игры</button>
-            <button className="tab">Музыка</button>
-            <button className="tab">Разговоры</button>
-            <button className="tab">Ещё</button>
+            <button 
+              className={`tab ${selectedCategory === 'all' ? 'active' : ''}`}
+              onClick={() => setSelectedCategory('all')}
+            >
+              Все
+            </button>
+            <button 
+              className={`tab ${selectedCategory === 'gaming' ? 'active' : ''}`}
+              onClick={() => setSelectedCategory('gaming')}
+            >
+              Игры
+            </button>
+            <button 
+              className={`tab ${selectedCategory === 'music' ? 'active' : ''}`}
+              onClick={() => setSelectedCategory('music')}
+            >
+              Музыка
+            </button>
+            <button 
+              className={`tab ${selectedCategory === 'talk' ? 'active' : ''}`}
+              onClick={() => setSelectedCategory('talk')}
+            >
+              Разговоры
+            </button>
+            <button 
+              className={`tab ${selectedCategory === 'other' ? 'active' : ''}`}
+              onClick={() => setSelectedCategory('other')}
+            >
+              Ещё
+            </button>
           </div>
         </div>
         {loading ? (
