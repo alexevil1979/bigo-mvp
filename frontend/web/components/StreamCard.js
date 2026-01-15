@@ -153,6 +153,20 @@ export default function StreamCard({ stream }) {
     <Link href={`/stream/${stream._id}`}>
       <div className="stream-card">
         <div className="stream-thumbnail" style={{ position: 'relative' }}>
+          {/* Fallback градиент, который всегда виден */}
+          <div 
+            className="stream-preview-fallback"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              zIndex: 1
+            }}
+          />
+          {/* Видео превью */}
           <video
             ref={videoRef}
             autoPlay
@@ -160,11 +174,13 @@ export default function StreamCard({ stream }) {
             muted
             className="stream-preview-video"
             style={{
+              position: 'relative',
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              display: 'block',
-              backgroundColor: '#000'
+              display: isConnected ? 'block' : 'none',
+              backgroundColor: '#000',
+              zIndex: 2
             }}
           />
           {showOverlay && overlayType === 'image' && overlayImage && (
@@ -201,11 +217,11 @@ export default function StreamCard({ stream }) {
             />
           )}
           {!isConnected && (
-            <div className="preview-loading">
+            <div className="preview-loading" style={{ zIndex: 3 }}>
               <div className="loading-spinner"></div>
             </div>
           )}
-          <div className="live-badge">LIVE</div>
+          <div className="live-badge" style={{ zIndex: 4 }}>LIVE</div>
         </div>
         <div className="stream-info">
           <h3>{stream.title}</h3>
