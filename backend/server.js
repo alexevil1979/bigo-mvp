@@ -123,10 +123,6 @@ const checkInactiveStreams = async () => {
         ? Math.floor((Date.now() - lastHeartbeat.getTime()) / 1000)
         : 'неизвестно';
       
-      const timeSinceHeartbeat = lastHeartbeat 
-        ? Math.floor((Date.now() - lastHeartbeat.getTime()) / 1000)
-        : 'неизвестно';
-      
       console.log(`⏰ Автоматическое завершение стрима ${stream._id} (нет heartbeat: ${timeSinceHeartbeat} секунд)`);
       await stream.endStream();
       
