@@ -159,6 +159,13 @@ export default function StreamCard({ stream }) {
             playsInline
             muted
             className="stream-preview-video"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+              backgroundColor: '#000'
+            }}
           />
           {showOverlay && overlayType === 'image' && overlayImage && (
             <div style={{

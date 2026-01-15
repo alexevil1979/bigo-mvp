@@ -237,11 +237,11 @@ export default function StreamPage() {
         <div className="stream-video-section">
           <div className="video-wrapper">
             <StreamPlayer stream={stream} user={user} />
-            <div className="video-overlay-gradient">
-              <div className="overlay-content">
-                <img src="/favicon.ico" alt="NIO" className="nio-logo-img" />
-                <div className="stream-id-overlay">ID: {stream.streamer?._id?.toString().slice(-10) || 'N/A'}</div>
-              </div>
+          </div>
+          <div className="stream-info-overlay">
+            <div className="overlay-content">
+              <img src="/favicon.ico" alt="NIO" className="nio-logo-img" />
+              <div className="stream-id-overlay">ID: {stream.streamer?._id?.toString().slice(-10) || 'N/A'}</div>
             </div>
           </div>
           <div className="stream-welcome">
@@ -495,17 +495,14 @@ export default function StreamPage() {
           object-fit: contain;
         }
 
-        .video-overlay-gradient {
-          position: absolute;
-          top: 0;
-          right: 0;
-          width: 200px;
-          height: 100%;
-          background: linear-gradient(to left, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.7) 100%);
+        .stream-info-overlay {
           display: flex;
           align-items: center;
           justify-content: center;
-          pointer-events: none;
+          padding: 15px;
+          background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.7) 100%);
+          border-radius: 8px;
+          margin-top: 10px;
         }
 
         .overlay-content {
@@ -514,14 +511,14 @@ export default function StreamPage() {
         }
 
         .nio-logo-img {
-          width: 60px;
-          height: 60px;
-          margin-bottom: 10px;
+          width: 40px;
+          height: 40px;
+          margin-bottom: 5px;
           object-fit: contain;
         }
 
         .stream-id-overlay {
-          font-size: 14px;
+          font-size: 12px;
           opacity: 0.9;
         }
 
