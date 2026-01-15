@@ -127,6 +127,12 @@ const checkInactiveStreams = async () => {
         streamId: stream._id,
         reason: 'Стрим прервался из-за потери соединения'
       });
+      
+      // Уведомляем всех клиентов об обновлении списка стримов
+      io.emit('stream-list-updated', {
+        type: 'ended',
+        streamId: stream._id
+      });
     }
   } catch (error) {
     console.error('Ошибка проверки неактивных стримов:', error);

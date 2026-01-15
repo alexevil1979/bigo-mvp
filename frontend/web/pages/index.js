@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Head from 'next/head';
-import axios from 'axios';
+import axios from '../lib/axios';
 import io from 'socket.io-client';
 import { useAuth } from '../contexts/AuthContext';
 import StreamCard from '../components/StreamCard';
@@ -36,12 +36,21 @@ export default function Home() {
 
     // Слушаем обновления списка стримов
     socket.on('stream-list-updated', (data) => {
-      if (data.action === 'ended') {
+      if (data.type === 'ended') {
         // Удаляем завершенный стрим из списка
         setStreams(prevStreams => prevStreams.filter(s => s._id !== data.streamId));
-      } else if (data.action === 'created') {
-        // Добавляем новый стрим в список
-        fetchStreams();
+      } else if (data.type === 'created' && data.stream) {
+        // Добавляем новый стрим в список (только если статус live)
+        if (data.stream.status === 'live') {
+          setStreams(prevStreams => {
+            // Проверяем, нет ли уже такого стрима
+            const exists = prevStreams.some(s => s._id === data.stream._id);
+            if (!exists) {
+              return [data.stream, ...prevStreams];
+            }
+            return prevStreams;
+          });
+        }
       }
     });
 

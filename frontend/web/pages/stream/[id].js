@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import axios from 'axios';
+import axios from '../../../lib/axios';
 import { useAuth } from '../../contexts/AuthContext';
 import StreamPlayer from '../../components/StreamPlayer';
 import StreamBroadcaster from '../../components/StreamBroadcaster';
@@ -44,7 +44,7 @@ export default function StreamPage() {
 
     // Слушаем обновления списка стримов
     socket.on('stream-list-updated', (data) => {
-      if (data.action === 'ended' && data.streamId === id) {
+      if (data.type === 'ended' && data.streamId === id) {
         fetchStream();
       }
     });

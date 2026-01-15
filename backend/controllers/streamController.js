@@ -40,6 +40,17 @@ exports.createStream = async (req, res) => {
     streamer.stats.totalStreams += 1;
     await streamer.save();
 
+    // Уведомляем всех клиентов о новом стриме через Socket.IO
+    const io = req.app.get('io');
+    if (io) {
+      const populatedStream = await Stream.findById(stream._id)
+        .populate('streamer', 'nickname avatar');
+      io.emit('stream-list-updated', {
+        type: 'created',
+        stream: populatedStream
+      });
+    }
+
     res.status(201).json({
       message: 'Стрим создан',
       stream
@@ -155,6 +166,15 @@ exports.endStream = async (req, res) => {
 
     await stream.endStream();
 
+    // Уведомляем всех клиентов о завершении стрима через Socket.IO
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('stream-list-updated', {
+        type: 'ended',
+        streamId: stream._id
+      });
+    }
+
     res.json({ message: 'Стрим завершен', stream });
   } catch (error) {
     console.error('Ошибка завершения стрима:', error);
@@ -177,6 +197,15 @@ exports.endMyActiveStream = async (req, res) => {
     }
 
     await stream.endStream();
+
+    // Уведомляем всех клиентов о завершении стрима через Socket.IO
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('stream-list-updated', {
+        type: 'ended',
+        streamId: stream._id
+      });
+    }
 
     res.json({ message: 'Стрим завершен', stream });
   } catch (error) {
