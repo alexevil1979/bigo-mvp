@@ -54,7 +54,6 @@ export default function StreamCard({ stream }) {
 
         // Обработка входящего потока
         pc.ontrack = (event) => {
-          console.log('Превью: получен трек', event);
           if (videoRef.current) {
             let mediaStream = null;
             if (event.streams && event.streams[0]) {
@@ -67,9 +66,7 @@ export default function StreamCard({ stream }) {
             
             if (mediaStream && videoRef.current) {
               videoRef.current.muted = true;
-              videoRef.current.play().catch((err) => {
-                console.error('Ошибка воспроизведения превью:', err);
-              });
+              videoRef.current.play().catch(() => {});
               // Устанавливаем isConnected после небольшой задержки, чтобы видео успело загрузиться
               setTimeout(() => {
                 if (videoRef.current && videoRef.current.srcObject) {
@@ -82,7 +79,6 @@ export default function StreamCard({ stream }) {
         
         // Отслеживание состояния соединения
         pc.onconnectionstatechange = () => {
-          console.log('Превью: состояние соединения', pc.connectionState);
           if (pc.connectionState === 'connected' && videoRef.current && videoRef.current.srcObject) {
             setIsConnected(true);
           }
@@ -110,22 +106,19 @@ export default function StreamCard({ stream }) {
           if (data.streamId === stream._id && (data.targetId === userId || !data.targetId)) {
             try {
               if (pc.remoteDescription) {
-                console.log('Превью: remoteDescription уже установлен');
                 return;
               }
-              console.log('Превью: получен offer, устанавливаю remoteDescription');
               await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
               const answer = await pc.createAnswer();
               await pc.setLocalDescription(answer);
 
-              console.log('Превью: отправляю answer');
               socket.emit('webrtc-answer', {
                 streamId: stream._id,
                 answer: answer,
                 targetId: data.senderId || stream.streamer._id
               });
             } catch (error) {
-              console.error('Ошибка обработки offer для превью:', error);
+              // Игнорируем ошибки для превью
             }
           }
         };
@@ -137,7 +130,7 @@ export default function StreamCard({ stream }) {
             try {
               await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
             } catch (error) {
-              console.error('Ошибка установки answer для превью:', error);
+              // Игнорируем ошибки для превью
             }
           }
         });
@@ -221,28 +214,18 @@ export default function StreamCard({ stream }) {
               zIndex: 2
             }}
             onLoadedMetadata={() => {
-              console.log('Превью: метаданные загружены');
               if (videoRef.current && videoRef.current.srcObject) {
-                videoRef.current.play().catch((err) => {
-                  console.error('Превью: ошибка play в onLoadedMetadata:', err);
-                });
+                videoRef.current.play().catch(() => {});
               }
             }}
             onCanPlay={() => {
-              console.log('Превью: видео готово к воспроизведению');
               if (videoRef.current && videoRef.current.srcObject) {
                 setIsConnected(true);
-                videoRef.current.play().catch((err) => {
-                  console.error('Превью: ошибка play в onCanPlay:', err);
-                });
+                videoRef.current.play().catch(() => {});
               }
             }}
             onPlay={() => {
-              console.log('Превью: видео воспроизводится');
               setIsConnected(true);
-            }}
-            onError={(e) => {
-              console.error('Превью: ошибка видео элемента:', e);
             }}
           />
           {showOverlay && overlayType === 'image' && overlayImage && (

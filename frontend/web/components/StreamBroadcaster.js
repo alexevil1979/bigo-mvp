@@ -642,33 +642,6 @@ export default function StreamBroadcaster({ stream, user }) {
           object-fit: contain;
         }
 
-        .stream-info-overlay {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 15px;
-          background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.7) 100%);
-          border-radius: 8px;
-          margin-top: 10px;
-        }
-
-        .overlay-content {
-          text-align: center;
-          color: #fff;
-        }
-
-        .nio-logo-img {
-          width: 40px;
-          height: 40px;
-          margin-bottom: 5px;
-          object-fit: contain;
-        }
-
-        .stream-id-overlay {
-          font-size: 12px;
-          opacity: 0.9;
-        }
-
         .stream-welcome {
           text-align: center;
           padding: 15px;
