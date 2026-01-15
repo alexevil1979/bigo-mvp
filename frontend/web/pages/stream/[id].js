@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import axios from '../../../lib/axios';
+import axios from '../../lib/axios';
 import { useAuth } from '../../contexts/AuthContext';
 import StreamPlayer from '../../components/StreamPlayer';
 import StreamBroadcaster from '../../components/StreamBroadcaster';
