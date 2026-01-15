@@ -331,12 +331,16 @@ sudo nano /etc/apache2/sites-available/bigo-frontend.conf
     ProxyPreserveHost On
     ProxyRequests Off
     
-    # Основной прокси для Next.js
+    # ВАЖНО: Сначала обрабатываем статические файлы Next.js
+    # Это предотвращает ошибки 400 для /_next/static/...
+    ProxyPass /_next/static http://localhost:3000/_next/static
+    ProxyPassReverse /_next/static http://localhost:3000/_next/static
+    
+    # Затем основной прокси для всего остального
     ProxyPass / http://localhost:3000/
     ProxyPassReverse / http://localhost:3000/
     
     # Заголовки для правильной работы прокси
-    ProxyPassReverse / http://localhost:3000/
     RequestHeader set X-Forwarded-Proto "http"
     RequestHeader set X-Forwarded-Port "80"
     RequestHeader set X-Real-IP %{REMOTE_ADDR}s
@@ -374,6 +378,12 @@ sudo nano /etc/apache2/sites-available/bigo-frontend.conf
     ProxyPreserveHost On
     ProxyRequests Off
     
+    # ВАЖНО: Сначала обрабатываем статические файлы Next.js
+    # Это предотвращает ошибки 400 для /_next/static/...
+    ProxyPass /_next/static http://localhost:3000/_next/static
+    ProxyPassReverse /_next/static http://localhost:3000/_next/static
+    
+    # Затем основной прокси для всего остального
     ProxyPass / http://localhost:3000/
     ProxyPassReverse / http://localhost:3000/
     

@@ -7,6 +7,7 @@ import io from 'socket.io-client';
 import { useAuth } from '../contexts/AuthContext';
 import StreamCard from '../components/StreamCard';
 import Header from '../components/Header';
+import SEO from '../components/SEO';
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
