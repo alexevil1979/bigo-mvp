@@ -29,6 +29,13 @@ apiClient.interceptors.response.use(
       console.error('API URL:', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
       console.error('Проверьте настройку SSL-сертификата на сервере.');
     }
+    // Обработка ошибок 401 (Unauthorized)
+    // НЕ делаем автоматический logout, чтобы не прерывать стрим
+    // Компоненты сами решат, что делать с ошибкой 401
+    if (error.response?.status === 401) {
+      console.warn('Ошибка аутентификации (401). Токен может быть истек или недействителен.');
+      // НЕ делаем автоматический logout здесь, чтобы не прерывать активные стримы
+    }
     return Promise.reject(error);
   }
 );

@@ -19,7 +19,9 @@ export default function CreateStream() {
   const [stuckStream, setStuckStream] = useState(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    // Не делаем редирект, если стрим уже начат
+    // Это предотвращает прерывание стрима при временной потере токена
+    if (!isAuthenticated && !stream) {
       router.push('/login');
       return;
     }
@@ -51,6 +53,10 @@ export default function CreateStream() {
         // Активного стрима нет - это нормально
         if (err.response?.status === 404) {
           console.log('Активного стрима нет, можно создать новый');
+        } else if (err.response?.status === 401) {
+          // Токен истек - не делаем редирект, просто логируем
+          console.warn('Токен истек при проверке активного стрима. Продолжаем работу.');
+          // НЕ делаем router.push('/login') здесь, чтобы не прерывать стрим
         } else {
           console.error('Ошибка проверки активного стрима:', err);
         }
@@ -115,6 +121,11 @@ export default function CreateStream() {
       if (err.response?.status === 400 && err.response?.data?.stream) {
         console.log('Найден активный стрим, продолжаем его:', err.response.data.stream);
         setStream(err.response.data.stream);
+      } else if (err.response?.status === 401) {
+        // Токен истек - не делаем редирект, просто показываем ошибку
+        console.warn('Токен истек при создании стрима. Попробуйте обновить страницу.');
+        setError('Сессия истекла. Пожалуйста, обновите страницу и войдите снова.');
+        // НЕ делаем router.push('/login') здесь, чтобы пользователь мог обновить страницу
       } else {
         setError(err.response?.data?.error || 'Ошибка создания стрима');
       }
@@ -123,7 +134,9 @@ export default function CreateStream() {
     }
   };
 
-  if (!isAuthenticated) {
+  // Не делаем редирект, если стрим уже начат
+  // Это предотвращает прерывание стрима при временной потере токена
+  if (!isAuthenticated && !stream) {
     return null;
   }
 
