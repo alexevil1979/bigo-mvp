@@ -54,19 +54,37 @@ export default function StreamCard({ stream }) {
 
         // Обработка входящего потока
         pc.ontrack = (event) => {
+          console.log('Превью: получен трек', event);
           if (videoRef.current) {
+            let mediaStream = null;
             if (event.streams && event.streams[0]) {
-              videoRef.current.srcObject = event.streams[0];
-              videoRef.current.muted = true; // Без звука для превью
-              videoRef.current.play().catch(() => {});
-              setIsConnected(true);
+              mediaStream = event.streams[0];
+              videoRef.current.srcObject = mediaStream;
             } else if (event.track) {
-              const stream = new MediaStream([event.track]);
-              videoRef.current.srcObject = stream;
-              videoRef.current.muted = true;
-              videoRef.current.play().catch(() => {});
-              setIsConnected(true);
+              mediaStream = new MediaStream([event.track]);
+              videoRef.current.srcObject = mediaStream;
             }
+            
+            if (mediaStream && videoRef.current) {
+              videoRef.current.muted = true;
+              videoRef.current.play().catch((err) => {
+                console.error('Ошибка воспроизведения превью:', err);
+              });
+              // Устанавливаем isConnected после небольшой задержки, чтобы видео успело загрузиться
+              setTimeout(() => {
+                if (videoRef.current && videoRef.current.srcObject) {
+                  setIsConnected(true);
+                }
+              }, 100);
+            }
+          }
+        };
+        
+        // Отслеживание состояния соединения
+        pc.onconnectionstatechange = () => {
+          console.log('Превью: состояние соединения', pc.connectionState);
+          if (pc.connectionState === 'connected' && videoRef.current && videoRef.current.srcObject) {
+            setIsConnected(true);
           }
         };
 
@@ -174,13 +192,28 @@ export default function StreamCard({ stream }) {
             muted
             className="stream-preview-video"
             style={{
-              position: 'relative',
+              position: 'absolute',
+              top: 0,
+              left: 0,
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              display: isConnected ? 'block' : 'none',
-              backgroundColor: '#000',
+              display: 'block',
+              backgroundColor: 'transparent',
+              opacity: isConnected ? 1 : 0,
+              transition: 'opacity 0.3s',
               zIndex: 2
+            }}
+            onLoadedMetadata={() => {
+              if (videoRef.current && videoRef.current.srcObject) {
+                videoRef.current.play().catch(() => {});
+              }
+            }}
+            onCanPlay={() => {
+              if (videoRef.current && videoRef.current.srcObject) {
+                setIsConnected(true);
+                videoRef.current.play().catch(() => {});
+              }
             }}
           />
           {showOverlay && overlayType === 'image' && overlayImage && (
