@@ -11,75 +11,126 @@ import { useState, useRef } from 'react';
  */
 export default function OverlaySelector({ onOverlayChange, onContinue }) {
   const [overlayImage, setOverlayImage] = useState(null);
+  const [overlayVideo, setOverlayVideo] = useState(null);
+  const [overlayType, setOverlayType] = useState(null); // 'image' or 'video'
   const [overlayEnabled, setOverlayEnabled] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
   const fileInputRef = useRef(null);
+  const videoInputRef = useRef(null);
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = (e, type) => {
     const file = e.target.files[0];
     if (file) {
-      // Проверяем тип файла
-      if (!file.type.startsWith('image/')) {
-        alert('Пожалуйста, выберите изображение');
-        return;
-      }
-
-      // Проверяем размер (макс 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Размер файла не должен превышать 5MB');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setOverlayImage(event.target.result);
-        setOverlayEnabled(true);
-        if (onOverlayChange) {
-          onOverlayChange(event.target.result, true);
+      if (type === 'image') {
+        // Проверяем тип файла для изображения
+        if (!file.type.startsWith('image/')) {
+          alert('Пожалуйста, выберите изображение');
+          return;
         }
-      };
-      reader.readAsDataURL(file);
+        // Проверяем размер (макс 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          alert('Размер файла не должен превышать 10MB');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setOverlayImage(event.target.result);
+          setOverlayVideo(null);
+          setOverlayType('image');
+          setOverlayEnabled(true);
+          if (onOverlayChange) {
+            onOverlayChange(event.target.result, true, 'image');
+          }
+        };
+        reader.readAsDataURL(file);
+      } else if (type === 'video') {
+        // Проверяем тип файла для видео
+        if (!file.type.startsWith('video/')) {
+          alert('Пожалуйста, выберите видео файл');
+          return;
+        }
+        // Проверяем размер (макс 50MB)
+        if (file.size > 50 * 1024 * 1024) {
+          alert('Размер файла не должен превышать 50MB');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setOverlayVideo(event.target.result);
+          setOverlayImage(null);
+          setOverlayType('video');
+          setOverlayEnabled(true);
+          if (onOverlayChange) {
+            onOverlayChange(event.target.result, true, 'video');
+          }
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
   const handleRemoveOverlay = () => {
     setOverlayImage(null);
+    setOverlayVideo(null);
+    setOverlayType(null);
     setOverlayEnabled(false);
     setShowOverlay(false);
     if (onOverlayChange) {
-      onOverlayChange(null, false);
+      onOverlayChange(null, false, null);
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+    if (videoInputRef.current) {
+      videoInputRef.current.value = '';
     }
   };
 
   const handleToggleOverlay = () => {
     const newState = !showOverlay;
     setShowOverlay(newState);
-    if (onOverlayChange && overlayImage) {
-      onOverlayChange(overlayImage, newState);
+    if (onOverlayChange) {
+      const overlay = overlayType === 'video' ? overlayVideo : overlayImage;
+      if (overlay) {
+        onOverlayChange(overlay, newState, overlayType);
+      }
     }
   };
 
   return (
     <div className="overlay-selector">
       <div className="overlay-controls">
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="select-overlay-button"
-        >
-          📷 Выбрать заставку
-        </button>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="select-overlay-button"
+          >
+            📷 Изображение
+          </button>
+          <button
+            onClick={() => videoInputRef.current?.click()}
+            className="select-overlay-button"
+            style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
+          >
+            🎬 Видео
+          </button>
+        </div>
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          onChange={handleFileSelect}
+          onChange={(e) => handleFileSelect(e, 'image')}
+          style={{ display: 'none' }}
+        />
+        <input
+          ref={videoInputRef}
+          type="file"
+          accept="video/*"
+          onChange={(e) => handleFileSelect(e, 'video')}
           style={{ display: 'none' }}
         />
         
-        {overlayImage && (
+        {(overlayImage || overlayVideo) && (
           <>
             <button
               onClick={handleToggleOverlay}
@@ -107,6 +158,11 @@ export default function OverlaySelector({ onOverlayChange, onContinue }) {
       {overlayImage && (
         <div className="overlay-preview">
           <img src={overlayImage} alt="Overlay preview" />
+        </div>
+      )}
+      {overlayVideo && (
+        <div className="overlay-preview">
+          <video src={overlayVideo} autoPlay loop muted style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', border: '2px solid #333' }} />
         </div>
       )}
 

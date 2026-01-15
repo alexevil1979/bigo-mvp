@@ -22,6 +22,8 @@ export default function StreamBroadcaster({ stream, user }) {
   const [showBanner, setShowBanner] = useState(true);
   const [showOverlaySelector, setShowOverlaySelector] = useState(false);
   const [overlayImage, setOverlayImage] = useState(null);
+  const [overlayVideo, setOverlayVideo] = useState(null);
+  const [overlayType, setOverlayType] = useState(null); // 'image' or 'video'
   const [showOverlay, setShowOverlay] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const heartbeatIntervalRef = useRef(null);
@@ -250,16 +252,28 @@ export default function StreamBroadcaster({ stream, user }) {
     }
   };
 
-  const handleOverlayChange = (image, enabled) => {
-    setOverlayImage(image);
+  const handleOverlayChange = (overlay, enabled, type) => {
+    if (type === 'image') {
+      setOverlayImage(overlay);
+      setOverlayVideo(null);
+    } else if (type === 'video') {
+      setOverlayVideo(overlay);
+      setOverlayImage(null);
+    } else {
+      setOverlayImage(null);
+      setOverlayVideo(null);
+    }
+    setOverlayType(type);
     setShowOverlay(enabled);
     
     // Отправляем информацию о заставке всем зрителям через socket
     if (socketRef.current && stream?._id) {
-      console.log('Отправляю событие заставки:', { streamId: stream._id, enabled, hasImage: !!image });
+      console.log('Отправляю событие заставки:', { streamId: stream._id, enabled, type, hasOverlay: !!overlay });
       socketRef.current.emit('stream-overlay-changed', {
         streamId: stream._id,
-        overlayImage: enabled ? image : null,
+        overlayImage: type === 'image' && enabled ? overlay : null,
+        overlayVideo: type === 'video' && enabled ? overlay : null,
+        overlayType: enabled ? type : null,
         enabled: enabled
       });
     }
@@ -342,7 +356,7 @@ export default function StreamBroadcaster({ stream, user }) {
               muted
               style={{ width: '100%', height: 'auto', display: 'block' }}
             />
-            {overlayImage && showOverlay && (
+            {showOverlay && overlayType === 'image' && overlayImage && (
               <div style={{
                 position: 'absolute',
                 top: 0,
@@ -355,6 +369,25 @@ export default function StreamBroadcaster({ stream, user }) {
                 pointerEvents: 'none',
                 zIndex: 10
               }} />
+            )}
+            {showOverlay && overlayType === 'video' && overlayVideo && (
+              <video
+                src={overlayVideo}
+                autoPlay
+                loop
+                muted
+                playsInline
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  pointerEvents: 'none',
+                  zIndex: 10
+                }}
+              />
             )}
             <div className="video-overlay-gradient">
               <div className="overlay-content">
@@ -582,6 +615,14 @@ export default function StreamBroadcaster({ stream, user }) {
           border-radius: 12px;
           overflow: hidden;
           margin-bottom: 15px;
+          aspect-ratio: 16 / 9;
+          min-height: 500px;
+        }
+        
+        .video-wrapper video {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
         }
 
         .video-overlay-gradient {
@@ -764,7 +805,9 @@ export default function StreamBroadcaster({ stream, user }) {
           width: 350px;
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 12px;
+          height: calc(100% - 140px);
+          max-height: calc(100vh - 200px);
         }
 
         @media (max-width: 1200px) {

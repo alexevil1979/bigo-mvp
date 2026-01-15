@@ -177,45 +177,51 @@ export default function Chat({ streamId, user }) {
             </div>
           )}
           <form onSubmit={sendMessage} className="chat-input-form">
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              placeholder={replyingTo ? `Ответить ${replyingTo.nickname}...` : "Введите сообщение..."}
-              maxLength={500}
-            />
-            <div className="emoji-picker-wrapper" ref={emojiPickerRef}>
-              <button
-                type="button"
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="emoji-toggle-button"
-                title="Эмодзи"
-              >
-                😀
-              </button>
-              {showEmojiPicker && (
-                <div className="emoji-picker">
-                  <div className="emoji-grid">
-                    {emojis.map(emoji => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() => sendReaction(emoji)}
-                        className="emoji-button"
-                        title={emoji}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
+            <div className="chat-input-wrapper">
+              <div className="emoji-picker-wrapper" ref={emojiPickerRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className="emoji-toggle-button"
+                  title="Эмодзи"
+                >
+                  😀
+                </button>
+                {showEmojiPicker && (
+                  <div className="emoji-picker">
+                    <div className="emoji-grid">
+                      {emojis.map(emoji => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => {
+                            setInputMessage(prev => prev + emoji);
+                            setShowEmojiPicker(false);
+                          }}
+                          className="emoji-button"
+                          title={emoji}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+              <input
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                placeholder={replyingTo ? `Ответить ${replyingTo.nickname}...` : "Введите сообщение..."}
+                maxLength={500}
+                className="chat-input-with-emoji"
+              />
+              <button type="submit" className="send-button">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+              </button>
             </div>
-            <button type="submit" className="send-button">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-              </svg>
-            </button>
           </form>
         </>
       )}
@@ -230,6 +236,7 @@ export default function Chat({ streamId, user }) {
           display: flex;
           flex-direction: column;
           height: 100%;
+          min-height: 0;
           background: #1a1a1a;
           border-radius: 8px;
           overflow: hidden;
@@ -336,43 +343,54 @@ export default function Chat({ streamId, user }) {
         }
 
         .chat-input-form {
-          display: flex;
-          align-items: center;
-          padding: 10px;
+          padding: 8px;
           background: #1a1a1a;
           border-top: 1px solid #333;
-          gap: 8px;
           position: relative;
           z-index: 1;
         }
 
-        .chat-input-form input {
+        .chat-input-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          width: 100%;
+        }
+
+        .chat-input-with-emoji {
           flex: 1;
-          padding: 10px 15px;
+          padding: 8px 12px;
           background: #0f0f0f;
           border: 1px solid #333;
           border-radius: 20px;
           color: #e0e0e0;
           font-size: 14px;
           outline: none;
+          min-width: 0;
         }
 
-        .chat-input-form input:focus {
+        .chat-input-with-emoji:focus {
           border-color: #6366f1;
         }
 
         .emoji-picker-wrapper {
           position: relative;
+          flex-shrink: 0;
         }
 
         .emoji-toggle-button {
           background: transparent;
           border: none;
-          font-size: 24px;
+          font-size: 20px;
           cursor: pointer;
-          padding: 5px 10px;
+          padding: 6px 8px;
           border-radius: 6px;
           transition: background 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
         }
 
         .emoji-toggle-button:hover {
@@ -417,7 +435,7 @@ export default function Chat({ streamId, user }) {
         }
 
         .send-button {
-          padding: 10px 15px;
+          padding: 8px 12px;
           background: #6366f1;
           color: #fff;
           border: none;
@@ -428,6 +446,9 @@ export default function Chat({ streamId, user }) {
           display: flex;
           align-items: center;
           justify-content: center;
+          flex-shrink: 0;
+          width: 36px;
+          height: 36px;
         }
 
         .send-button:hover {
@@ -435,8 +456,8 @@ export default function Chat({ streamId, user }) {
         }
 
         .send-button svg {
-          width: 20px;
-          height: 20px;
+          width: 18px;
+          height: 18px;
         }
 
         .chat-login-prompt {

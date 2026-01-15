@@ -125,7 +125,7 @@ const initialize = (socketIo) => {
 
     // Изменение заставки стрима
     socket.on('stream-overlay-changed', (data) => {
-      const { streamId, overlayImage, enabled } = data;
+      const { streamId, overlayImage, overlayVideo, overlayType, enabled } = data;
       
       // Проверяем, что это стример
       if (socket.isStreamer && streamId) {
@@ -133,15 +133,19 @@ const initialize = (socketIo) => {
         socket.to(`webrtc-${streamId}`).emit('stream-overlay-changed', {
           streamId,
           overlayImage,
+          overlayVideo,
+          overlayType,
           enabled
         });
         // Также отправляем в комнату чата на случай, если зрители там
         io.to(`stream-${streamId}`).emit('stream-overlay-changed', {
           streamId,
           overlayImage,
+          overlayVideo,
+          overlayType,
           enabled
         });
-        console.log(`🎨 Заставка стрима ${streamId} ${enabled ? 'включена' : 'отключена'}`);
+        console.log(`🎨 Заставка стрима ${streamId} (${overlayType}) ${enabled ? 'включена' : 'отключена'}`);
       }
     });
 

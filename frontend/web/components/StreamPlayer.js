@@ -8,6 +8,8 @@ export default function StreamPlayer({ stream, user }) {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState('');
   const [overlayImage, setOverlayImage] = useState(null);
+  const [overlayVideo, setOverlayVideo] = useState(null);
+  const [overlayType, setOverlayType] = useState(null);
   const [showOverlay, setShowOverlay] = useState(false);
 
   useEffect(() => {
@@ -154,8 +156,10 @@ export default function StreamPlayer({ stream, user }) {
         const overlayHandler = (data) => {
           console.log('Получено событие заставки:', data);
           if (data.streamId === stream._id) {
-            console.log('Применяю заставку:', { overlayImage: data.overlayImage, enabled: data.enabled });
-            setOverlayImage(data.overlayImage);
+            console.log('Применяю заставку:', { overlayImage: data.overlayImage, overlayVideo: data.overlayVideo, type: data.overlayType, enabled: data.enabled });
+            setOverlayImage(data.overlayImage || null);
+            setOverlayVideo(data.overlayVideo || null);
+            setOverlayType(data.overlayType || null);
             setShowOverlay(data.enabled);
           }
         };
@@ -247,7 +251,7 @@ export default function StreamPlayer({ stream, user }) {
             }
           }}
         />
-        {overlayImage && showOverlay && (
+        {showOverlay && overlayType === 'image' && overlayImage && (
           <div style={{
             position: 'absolute',
             top: 0,
@@ -260,6 +264,25 @@ export default function StreamPlayer({ stream, user }) {
             pointerEvents: 'none',
             zIndex: 10
           }} />
+        )}
+        {showOverlay && overlayType === 'video' && overlayVideo && (
+          <video
+            src={overlayVideo}
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              pointerEvents: 'none',
+              zIndex: 10
+            }}
+          />
         )}
       </div>
       {!isConnected && <div className="loading">Подключение к стриму...</div>}

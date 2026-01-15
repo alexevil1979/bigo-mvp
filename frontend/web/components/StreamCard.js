@@ -8,6 +8,8 @@ export default function StreamCard({ stream }) {
   const peerConnectionRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const [overlayImage, setOverlayImage] = useState(null);
+  const [overlayVideo, setOverlayVideo] = useState(null);
+  const [overlayType, setOverlayType] = useState(null);
   const [showOverlay, setShowOverlay] = useState(false);
 
   useEffect(() => {
@@ -96,7 +98,9 @@ export default function StreamCard({ stream }) {
         // Слушаем изменения заставки от стримера
         const overlayHandler = (data) => {
           if (data.streamId === stream._id) {
-            setOverlayImage(data.overlayImage);
+            setOverlayImage(data.overlayImage || null);
+            setOverlayVideo(data.overlayVideo || null);
+            setOverlayType(data.overlayType || null);
             setShowOverlay(data.enabled);
           }
         };
@@ -132,7 +136,7 @@ export default function StreamCard({ stream }) {
             muted
             className="stream-preview-video"
           />
-          {overlayImage && showOverlay && (
+          {showOverlay && overlayType === 'image' && overlayImage && (
             <div style={{
               position: 'absolute',
               top: 0,
@@ -145,6 +149,25 @@ export default function StreamCard({ stream }) {
               pointerEvents: 'none',
               zIndex: 5
             }} />
+          )}
+          {showOverlay && overlayType === 'video' && overlayVideo && (
+            <video
+              src={overlayVideo}
+              autoPlay
+              loop
+              muted
+              playsInline
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                pointerEvents: 'none',
+                zIndex: 5
+              }}
+            />
           )}
           {!isConnected && (
             <div className="preview-loading">

@@ -482,6 +482,7 @@ export default function StreamPage() {
           grid-template-columns: 1fr 350px;
           gap: 20px;
           margin-bottom: 20px;
+          align-items: start;
         }
 
         .stream-video-section {
@@ -496,6 +497,14 @@ export default function StreamPage() {
           border-radius: 12px;
           overflow: hidden;
           margin-bottom: 15px;
+          aspect-ratio: 16 / 9;
+          min-height: 500px;
+        }
+        
+        .video-wrapper video {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
         }
 
         .video-overlay-gradient {
@@ -693,7 +702,9 @@ export default function StreamPage() {
           width: 350px;
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 12px;
+          height: calc(100% - 140px);
+          max-height: calc(100vh - 200px);
         }
 
         .floating-buttons {

@@ -113,8 +113,10 @@ export default function ViewerList({ streamId, socket, onBlockUser, blockedUsers
           border-radius: 8px;
           overflow: hidden;
           height: 100%;
+          min-height: 0;
           display: flex;
           flex-direction: column;
+          flex: 1;
         }
 
         .viewer-list-header {
