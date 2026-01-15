@@ -703,8 +703,17 @@ export default function StreamPage() {
           display: flex;
           flex-direction: column;
           gap: 12px;
-          height: calc(100% - 140px);
           max-height: calc(100vh - 200px);
+        }
+        
+        .stream-sidebar > *:not(:last-child) {
+          flex-shrink: 0;
+        }
+        
+        .stream-sidebar > *:last-child {
+          flex: 1;
+          min-height: 0;
+          overflow: hidden;
         }
 
         .floating-buttons {
