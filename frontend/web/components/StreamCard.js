@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import io from 'socket.io-client';
+import { generateTurnCredentialsSync } from '../lib/turnAuth';
 
 export default function StreamCard({ stream }) {
   const videoRef = useRef(null);
@@ -29,11 +30,22 @@ export default function StreamCard({ stream }) {
         
         // Добавляем TURN сервер, если он настроен
         if (process.env.NEXT_PUBLIC_WEBRTC_TURN_SERVER) {
-          iceServers.push({
-            urls: process.env.NEXT_PUBLIC_WEBRTC_TURN_SERVER,
-            username: process.env.NEXT_PUBLIC_WEBRTC_TURN_USERNAME || '',
-            credential: process.env.NEXT_PUBLIC_WEBRTC_TURN_PASSWORD || ''
-          });
+          const turnConfig = {
+            urls: process.env.NEXT_PUBLIC_WEBRTC_TURN_SERVER
+          };
+          
+          if (process.env.NEXT_PUBLIC_WEBRTC_TURN_SECRET) {
+            const credentials = generateTurnCredentialsSync(process.env.NEXT_PUBLIC_WEBRTC_TURN_SECRET);
+            if (credentials) {
+              turnConfig.username = credentials.username;
+              turnConfig.credential = credentials.credential;
+            }
+          } else if (process.env.NEXT_PUBLIC_WEBRTC_TURN_USERNAME && process.env.NEXT_PUBLIC_WEBRTC_TURN_PASSWORD) {
+            turnConfig.username = process.env.NEXT_PUBLIC_WEBRTC_TURN_USERNAME;
+            turnConfig.credential = process.env.NEXT_PUBLIC_WEBRTC_TURN_PASSWORD;
+          }
+          
+          iceServers.push(turnConfig);
         }
         
         const pc = new RTCPeerConnection({ iceServers });

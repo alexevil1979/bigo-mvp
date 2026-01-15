@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import io from 'socket.io-client';
+import { generateTurnCredentialsSync } from '../lib/turnAuth';
 
 export default function StreamPlayer({ stream, user }) {
   const videoRef = useRef(null);
@@ -31,11 +32,24 @@ export default function StreamPlayer({ stream, user }) {
         
         // Добавляем TURN сервер, если он настроен
         if (process.env.NEXT_PUBLIC_WEBRTC_TURN_SERVER) {
-          iceServers.push({
-            urls: process.env.NEXT_PUBLIC_WEBRTC_TURN_SERVER,
-            username: process.env.NEXT_PUBLIC_WEBRTC_TURN_USERNAME || '',
-            credential: process.env.NEXT_PUBLIC_WEBRTC_TURN_PASSWORD || ''
-          });
+          const turnConfig = {
+            urls: process.env.NEXT_PUBLIC_WEBRTC_TURN_SERVER
+          };
+          
+          // Если есть статический ключ, используем его для генерации временных учетных данных
+          if (process.env.NEXT_PUBLIC_WEBRTC_TURN_SECRET) {
+            const credentials = generateTurnCredentialsSync(process.env.NEXT_PUBLIC_WEBRTC_TURN_SECRET);
+            if (credentials) {
+              turnConfig.username = credentials.username;
+              turnConfig.credential = credentials.credential;
+            }
+          } else if (process.env.NEXT_PUBLIC_WEBRTC_TURN_USERNAME && process.env.NEXT_PUBLIC_WEBRTC_TURN_PASSWORD) {
+            // Используем статические учетные данные
+            turnConfig.username = process.env.NEXT_PUBLIC_WEBRTC_TURN_USERNAME;
+            turnConfig.credential = process.env.NEXT_PUBLIC_WEBRTC_TURN_PASSWORD;
+          }
+          
+          iceServers.push(turnConfig);
         }
         
         const pc = new RTCPeerConnection({ iceServers });
