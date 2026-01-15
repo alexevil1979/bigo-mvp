@@ -244,18 +244,59 @@ export default function Footer() {
         }
 
         @media (max-width: 768px) {
+          .footer {
+            padding: 40px 15px 20px;
+          }
+
           .footer-content {
             grid-template-columns: repeat(2, 1fr);
-            gap: 30px;
+            gap: 25px;
+            margin-bottom: 30px;
+          }
+
+          .footer-column h3 {
+            font-size: 14px;
+            margin-bottom: 15px;
+          }
+
+          .footer-column a {
+            font-size: 12px;
           }
 
           .footer-bottom {
             flex-direction: column;
             text-align: center;
+            gap: 20px;
+            padding-top: 30px;
+          }
+
+          .footer-download h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+          }
+
+          .app-badges {
+            justify-content: center;
+            gap: 10px;
+          }
+
+          .app-badge {
+            padding: 8px 16px;
+            font-size: 12px;
           }
 
           .footer-copyright {
             text-align: center;
+            font-size: 11px;
+          }
+
+          .social-links {
+            justify-content: center;
+          }
+
+          .social-icon {
+            width: 36px;
+            height: 36px;
           }
         }
       `}</style>

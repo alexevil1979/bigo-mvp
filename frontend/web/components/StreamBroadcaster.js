@@ -131,9 +131,21 @@ export default function StreamBroadcaster({ stream, user }) {
         return;
       }
 
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-      });
+      // Получаем TURN серверы из переменных окружения, если они есть
+      const iceServers = [
+        { urls: 'stun:stun.l.google.com:19302' }
+      ];
+      
+      // Добавляем TURN сервер, если он настроен
+      if (process.env.NEXT_PUBLIC_WEBRTC_TURN_SERVER) {
+        iceServers.push({
+          urls: process.env.NEXT_PUBLIC_WEBRTC_TURN_SERVER,
+          username: process.env.NEXT_PUBLIC_WEBRTC_TURN_USERNAME || '',
+          credential: process.env.NEXT_PUBLIC_WEBRTC_TURN_PASSWORD || ''
+        });
+      }
+      
+      const pc = new RTCPeerConnection({ iceServers });
 
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(track => {
@@ -806,6 +818,7 @@ export default function StreamBroadcaster({ stream, user }) {
           display: flex;
           flex-direction: column;
           gap: 12px;
+          height: calc(100vh - 200px);
           max-height: calc(100vh - 200px);
         }
         
@@ -817,6 +830,8 @@ export default function StreamBroadcaster({ stream, user }) {
           flex: 1;
           min-height: 0;
           overflow: hidden;
+          display: flex;
+          flex-direction: column;
         }
 
         @media (max-width: 1200px) {

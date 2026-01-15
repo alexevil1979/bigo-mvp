@@ -24,11 +24,21 @@ export default function StreamPlayer({ stream, user }) {
     // Настройка WebRTC
     const setupWebRTC = async () => {
       try {
-        const pc = new RTCPeerConnection({
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' }
-          ]
-        });
+        // Получаем TURN серверы из переменных окружения, если они есть
+        const iceServers = [
+          { urls: 'stun:stun.l.google.com:19302' }
+        ];
+        
+        // Добавляем TURN сервер, если он настроен
+        if (process.env.NEXT_PUBLIC_WEBRTC_TURN_SERVER) {
+          iceServers.push({
+            urls: process.env.NEXT_PUBLIC_WEBRTC_TURN_SERVER,
+            username: process.env.NEXT_PUBLIC_WEBRTC_TURN_USERNAME || '',
+            credential: process.env.NEXT_PUBLIC_WEBRTC_TURN_PASSWORD || ''
+          });
+        }
+        
+        const pc = new RTCPeerConnection({ iceServers });
 
         peerConnectionRef.current = pc;
 

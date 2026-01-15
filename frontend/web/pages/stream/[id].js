@@ -703,6 +703,7 @@ export default function StreamPage() {
           display: flex;
           flex-direction: column;
           gap: 12px;
+          height: calc(100vh - 200px);
           max-height: calc(100vh - 200px);
         }
         
@@ -714,6 +715,8 @@ export default function StreamPage() {
           flex: 1;
           min-height: 0;
           overflow: hidden;
+          display: flex;
+          flex-direction: column;
         }
 
         .floating-buttons {

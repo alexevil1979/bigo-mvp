@@ -69,8 +69,8 @@ export default function Chat({ streamId, user }) {
 
   const sendMessage = (e) => {
     e.preventDefault();
-    e.stopPropagation(); // Предотвращаем всплытие события
-    if (!inputMessage.trim() || !socketRef.current || !isAuthenticated) return;
+    e.stopPropagation();
+    if (!inputMessage.trim() || !socketRef.current || !isAuthenticated) return false;
 
     socketRef.current.emit('send-message', {
       streamId,
@@ -85,12 +85,14 @@ export default function Chat({ streamId, user }) {
     setInputMessage('');
     setReplyingTo(null);
     
-    // Скроллим контейнер чата вниз после отправки
+    // Скроллим только контейнер чата, не всю страницу
     setTimeout(() => {
-      if (messagesContainerRef.current && messagesEndRef.current) {
+      if (messagesContainerRef.current) {
         messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
       }
-    }, 100);
+    }, 50);
+    
+    return false;
   };
 
   const handleReply = (message) => {
@@ -348,6 +350,7 @@ export default function Chat({ streamId, user }) {
           border-top: 1px solid #333;
           position: relative;
           z-index: 1;
+          flex-shrink: 0;
         }
 
         .chat-input-wrapper {
@@ -356,6 +359,7 @@ export default function Chat({ streamId, user }) {
           gap: 6px;
           width: 100%;
           box-sizing: border-box;
+          max-width: 100%;
         }
 
         .chat-input-with-emoji {
@@ -436,7 +440,7 @@ export default function Chat({ streamId, user }) {
         }
 
         .send-button {
-          padding: 8px 12px;
+          padding: 0;
           background: #6366f1;
           color: #fff;
           border: none;
@@ -450,6 +454,8 @@ export default function Chat({ streamId, user }) {
           flex-shrink: 0;
           width: 36px;
           height: 36px;
+          min-width: 36px;
+          min-height: 36px;
         }
 
         .send-button:hover {
