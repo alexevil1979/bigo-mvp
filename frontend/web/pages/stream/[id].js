@@ -145,6 +145,7 @@ export default function StreamPage() {
 
   const handleBottomChatSend = (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Предотвращаем всплытие события
     if (!bottomChatInput.trim() || !socketRef.current || !isAuthenticated) return;
 
     socketRef.current.emit('send-message', {
@@ -156,6 +157,9 @@ export default function StreamPage() {
     });
 
     setBottomChatInput('');
+    
+    // Предотвращаем скролл страницы
+    return false;
   };
 
   return (
@@ -545,6 +549,12 @@ export default function StreamPage() {
           display: flex;
           gap: 10px;
           width: 100%;
+          position: relative;
+          z-index: 1;
+        }
+        
+        .chat-input-form-bottom:focus-within {
+          outline: none;
         }
 
         .chat-login-prompt-bottom {

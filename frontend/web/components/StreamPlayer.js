@@ -7,6 +7,8 @@ export default function StreamPlayer({ stream, user }) {
   const peerConnectionRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState('');
+  const [overlayImage, setOverlayImage] = useState(null);
+  const [showOverlay, setShowOverlay] = useState(false);
 
   useEffect(() => {
     if (!stream) return;
@@ -148,6 +150,15 @@ export default function StreamPlayer({ stream, user }) {
           }
         });
 
+        // Слушаем изменения заставки от стримера
+        const overlayHandler = (data) => {
+          if (data.streamId === stream._id) {
+            setOverlayImage(data.overlayImage);
+            setShowOverlay(data.enabled);
+          }
+        };
+        socket.on('stream-overlay-changed', overlayHandler);
+
         setIsConnected(true);
       } catch (err) {
         console.error('Ошибка WebRTC:', err);
@@ -165,6 +176,7 @@ export default function StreamPlayer({ stream, user }) {
         socketRef.current.off('webrtc-offer');
         socketRef.current.off('webrtc-answer');
         socketRef.current.off('webrtc-ice-candidate');
+        socketRef.current.off('stream-overlay-changed');
         socketRef.current.disconnect();
       }
     };
@@ -210,28 +222,44 @@ export default function StreamPlayer({ stream, user }) {
   return (
     <div className="stream-player">
       {error && <div className="error">{error}</div>}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        controls
-        muted={false}
-        className="video-player"
-        onLoadedMetadata={() => {
-          if (videoRef.current && videoRef.current.paused) {
-            videoRef.current.play().catch(err => {
-              console.error('Ошибка автоплея:', err);
-            });
-          }
-        }}
-        onCanPlay={() => {
-          if (videoRef.current && videoRef.current.paused) {
-            videoRef.current.play().catch(err => {
-              console.error('Ошибка автоплея:', err);
-            });
-          }
-        }}
-      />
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          controls
+          muted={false}
+          className="video-player"
+          onLoadedMetadata={() => {
+            if (videoRef.current && videoRef.current.paused) {
+              videoRef.current.play().catch(err => {
+                console.error('Ошибка автоплея:', err);
+              });
+            }
+          }}
+          onCanPlay={() => {
+            if (videoRef.current && videoRef.current.paused) {
+              videoRef.current.play().catch(err => {
+                console.error('Ошибка автоплея:', err);
+              });
+            }
+          }}
+        />
+        {overlayImage && showOverlay && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundImage: `url(${overlayImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            pointerEvents: 'none',
+            zIndex: 10
+          }} />
+        )}
+      </div>
       {!isConnected && <div className="loading">Подключение к стриму...</div>}
     </div>
   );

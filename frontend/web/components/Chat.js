@@ -9,6 +9,7 @@ export default function Chat({ streamId, user }) {
   const [replyingTo, setReplyingTo] = useState(null);
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const isAuthenticated = !!user;
 
@@ -53,12 +54,22 @@ export default function Chat({ streamId, user }) {
     };
   }, [streamId, user?.id, isAuthenticated]);
 
+  // Автоскролл только контейнера чата, не всей страницы
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current && messagesEndRef.current) {
+      const container = messagesContainerRef.current;
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      
+      // Скроллим только если пользователь уже был внизу чата
+      if (isNearBottom) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
   }, [messages]);
 
   const sendMessage = (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Предотвращаем всплытие события
     if (!inputMessage.trim() || !socketRef.current || !isAuthenticated) return;
 
     socketRef.current.emit('send-message', {
@@ -73,6 +84,13 @@ export default function Chat({ streamId, user }) {
 
     setInputMessage('');
     setReplyingTo(null);
+    
+    // Скроллим контейнер чата вниз после отправки
+    setTimeout(() => {
+      if (messagesContainerRef.current && messagesEndRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
+    }, 100);
   };
 
   const handleReply = (message) => {
@@ -113,7 +131,7 @@ export default function Chat({ streamId, user }) {
 
   return (
     <div className="chat-container">
-      <div className="chat-messages">
+      <div className="chat-messages" ref={messagesContainerRef}>
         {messages.map((msg, index) => (
           <div 
             key={msg.id || index} 
@@ -220,8 +238,10 @@ export default function Chat({ streamId, user }) {
         .chat-messages {
           flex: 1;
           overflow-y: auto;
+          overflow-x: hidden;
           padding: 15px;
           background: #0f0f0f;
+          scroll-behavior: smooth;
         }
 
         .chat-message {
@@ -322,6 +342,8 @@ export default function Chat({ streamId, user }) {
           background: #1a1a1a;
           border-top: 1px solid #333;
           gap: 8px;
+          position: relative;
+          z-index: 1;
         }
 
         .chat-input-form input {

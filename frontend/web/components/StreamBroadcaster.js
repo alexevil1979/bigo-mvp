@@ -252,6 +252,15 @@ export default function StreamBroadcaster({ stream, user }) {
   const handleOverlayChange = (image, enabled) => {
     setOverlayImage(image);
     setShowOverlay(enabled);
+    
+    // Отправляем информацию о заставке всем зрителям через socket
+    if (socketRef.current && stream?._id) {
+      socketRef.current.emit('stream-overlay-changed', {
+        streamId: stream._id,
+        overlayImage: enabled ? image : null,
+        enabled: enabled
+      });
+    }
   };
 
   const handleBottomChatSend = (e) => {

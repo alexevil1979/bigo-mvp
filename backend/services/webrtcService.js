@@ -123,6 +123,22 @@ const initialize = (socketIo) => {
       }
     });
 
+    // Изменение заставки стрима
+    socket.on('stream-overlay-changed', (data) => {
+      const { streamId, overlayImage, enabled } = data;
+      
+      // Проверяем, что это стример
+      if (socket.isStreamer && streamId) {
+        // Транслируем событие всем зрителям стрима
+        socket.to(`webrtc-${streamId}`).emit('stream-overlay-changed', {
+          streamId,
+          overlayImage,
+          enabled
+        });
+        console.log(`🎨 Заставка стрима ${streamId} ${enabled ? 'включена' : 'отключена'}`);
+      }
+    });
+
     // Отключение от стрима
     socket.on('leave-stream', (data) => {
       const { streamId } = data;
