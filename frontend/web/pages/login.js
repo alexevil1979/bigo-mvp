@@ -43,7 +43,9 @@ export default function Login() {
         router.push('/');
       }
     } catch (err) {
-      if (err.code === 'ECONNABORTED' || err.code === 'ERR_TIMED_OUT' || err.code === 'ETIMEDOUT') {
+      if (err.code === 'ERR_CERT_COMMON_NAME_INVALID' || err.code === 'ERR_CERT_AUTHORITY_INVALID') {
+        setError('Ошибка SSL-сертификата. Обратитесь к администратору сервера.');
+      } else if (err.code === 'ECONNABORTED' || err.code === 'ERR_TIMED_OUT' || err.code === 'ETIMEDOUT') {
         setError('Сервер не отвечает. Проверьте подключение к интернету или попробуйте позже.');
       } else if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
         setError('Ошибка сети. Сервер недоступен. Проверьте подключение к интернету.');

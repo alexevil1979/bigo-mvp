@@ -99,6 +99,14 @@ export default function QRCodeLogin() {
     } catch (error) {
       console.error('Ошибка генерации QR-кода:', error);
       
+      // Обработка ошибок SSL-сертификата
+      if (error.code === 'ERR_CERT_COMMON_NAME_INVALID' || 
+          error.code === 'ERR_CERT_AUTHORITY_INVALID' ||
+          error.message?.includes('certificate')) {
+        setStatus('error');
+        return; // Не повторяем при ошибке SSL
+      }
+      
       // Повторная попытка при таймауте (максимум 2 попытки)
       if ((error.code === 'ECONNABORTED' || error.code === 'ERR_TIMED_OUT' || error.code === 'ETIMEDOUT') && retryCount < 2) {
         console.log(`Повторная попытка генерации QR-кода (${retryCount + 1}/2)...`);
@@ -134,7 +142,10 @@ export default function QRCodeLogin() {
             )}
             {status === 'error' && (
               <div className="qr-status error">
-                <p>⚠️ Сервер недоступен</p>
+                <p>⚠️ Ошибка подключения</p>
+                <p style={{ fontSize: '12px', marginTop: '5px', color: '#999' }}>
+                  Проверьте настройки сервера или попробуйте позже
+                </p>
                 <button 
                   onClick={() => generateQRCode()} 
                   className="retry-button"
