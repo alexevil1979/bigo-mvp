@@ -414,12 +414,6 @@ export default function StreamBroadcaster({ stream, user }) {
               />
             )}
           </div>
-          <div className="stream-info-overlay">
-            <div className="overlay-content">
-              <img src="/favicon.ico" alt="NIO" className="nio-logo-img" />
-              <div className="stream-id-overlay">ID: {user?.id?.toString().slice(-10) || 'N/A'}</div>
-            </div>
-          </div>
           <div className="stream-welcome">
             <p>Наслаждайся прямыми эфирами</p>
           </div>
