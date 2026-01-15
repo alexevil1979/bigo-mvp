@@ -12,8 +12,9 @@
 
 /**
  * Синхронная версия генерации credentials
- * ВАЖНО: Для правильной работы с coturn используйте асинхронную версию generateTurnCredentials
- * Эта версия возвращает временные credentials, которые могут не работать с некоторыми конфигурациями
+ * ВАЖНО: Эта версия использует упрощенный метод и может не работать с некоторыми конфигурациями
+ * Для правильной работы рекомендуется использовать асинхронную версию generateTurnCredentials
+ * или серверную генерацию credentials
  */
 export function generateTurnCredentialsSync(secret) {
   if (!secret) {
@@ -34,10 +35,9 @@ export function generateTurnCredentialsSync(secret) {
     // ВАЖНО: Для правильной работы рекомендуется использовать асинхронную версию generateTurnCredentials
     // или серверную генерацию credentials
     
-    // Временное решение для синхронной версии:
-    // Используем base64 от секрета как credential (работает с некоторыми конфигурациями coturn)
+    // Упрощенный метод для синхронной версии (может не работать с некоторыми конфигурациями)
     // Для правильной работы нужно использовать HMAC-SHA1 через асинхронную версию
-    const credential = btoa(secret + ':' + username).substring(0, 32);
+    const credential = btoa(secret).substring(0, 32);
     
     if (!username || !credential) {
       console.error('Ошибка: не удалось сгенерировать username или credential');
@@ -56,12 +56,16 @@ export function generateTurnCredentialsSync(secret) {
 
 /**
  * Асинхронная версия с Web Crypto API (для правильного HMAC-SHA1)
+ * Для coturn с static-auth-secret:
+ * username = timestamp (время истечения в секундах)
+ * credential = base64(HMAC-SHA1(static-auth-secret, username))
  */
 export async function generateTurnCredentials(secret) {
   if (!secret) return null;
 
   try {
-    const timestamp = Math.floor(Date.now() / 1000) + 3600;
+    // Время истечения (24 часа от текущего времени, как в coturn)
+    const timestamp = Math.floor(Date.now() / 1000) + (24 * 3600);
     const username = timestamp.toString();
 
     // Генерация HMAC-SHA1 с использованием Web Crypto API
@@ -77,6 +81,7 @@ export async function generateTurnCredentials(secret) {
 
     const messageData = encoder.encode(username);
     const signature = await crypto.subtle.sign('HMAC', key, messageData);
+    // Конвертируем в base64
     const credential = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
     return {

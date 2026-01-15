@@ -38,6 +38,8 @@ export default function StreamPlayer({ stream, user }) {
           
           // Если есть статический ключ, используем его для генерации временных учетных данных
           if (process.env.NEXT_PUBLIC_WEBRTC_TURN_SECRET) {
+            // Используем синхронную версию для немедленного использования
+            // В production рекомендуется использовать асинхронную версию или серверную генерацию
             const credentials = generateTurnCredentialsSync(process.env.NEXT_PUBLIC_WEBRTC_TURN_SECRET);
             if (credentials && credentials.username && credentials.credential) {
               turnConfig.username = credentials.username;
