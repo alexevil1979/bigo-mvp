@@ -38,8 +38,9 @@ export default function OverlaySelector({ onOverlayChange, onContinue }) {
           setOverlayVideo(null);
           setOverlayType('image');
           setOverlayEnabled(true);
+          setShowOverlay(false); // Заставка не включается автоматически
           if (onOverlayChange) {
-            onOverlayChange(event.target.result, true, 'image');
+            onOverlayChange(event.target.result, false, 'image'); // false - заставка выключена
           }
         };
         reader.readAsDataURL(file);
@@ -60,8 +61,9 @@ export default function OverlaySelector({ onOverlayChange, onContinue }) {
           setOverlayImage(null);
           setOverlayType('video');
           setOverlayEnabled(true);
+          setShowOverlay(false); // Заставка не включается автоматически
           if (onOverlayChange) {
-            onOverlayChange(event.target.result, true, 'video');
+            onOverlayChange(event.target.result, false, 'video'); // false - заставка выключена
           }
         };
         reader.readAsDataURL(file);
