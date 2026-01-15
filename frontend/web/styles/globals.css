@@ -342,6 +342,30 @@ body {
   object-fit: contain;
 }
 
+/* Скрываем overlay с ID и логотипом - универсальные правила для всех классов */
+div[class*="video-overlay-gradient"],
+div[class*="overlay-content"],
+img[class*="nio-logo-img"],
+div[class*="stream-id-overlay"],
+div[class*="stream-info-overlay"],
+.video-wrapper div[class*="video-overlay-gradient"],
+.video-wrapper div[class*="overlay-content"],
+.video-wrapper img[class*="nio-logo-img"],
+.video-wrapper div[class*="stream-id-overlay"],
+.stream-player div[class*="video-overlay-gradient"],
+.stream-player div[class*="overlay-content"],
+.stream-player img[class*="nio-logo-img"],
+.stream-player div[class*="stream-id-overlay"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 @media (max-width: 768px) {
   .stream-player {
     min-height: 250px;

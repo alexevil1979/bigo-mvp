@@ -488,7 +488,12 @@ export default function StreamPage() {
           object-fit: contain;
         }
 
-        /* Скрываем любые overlay с ID и логотипом */
+        /* Скрываем любые overlay с ID и логотипом - универсальные правила */
+        .video-wrapper div[class*="video-overlay-gradient"],
+        .video-wrapper div[class*="overlay-content"],
+        .video-wrapper img[class*="nio-logo-img"],
+        .video-wrapper div[class*="stream-id-overlay"],
+        .video-wrapper div[class*="stream-info-overlay"],
         .video-wrapper .stream-info-overlay,
         .video-wrapper .streamer-id,
         .video-wrapper .video-overlay-gradient,
@@ -496,6 +501,13 @@ export default function StreamPage() {
         .video-wrapper .nio-logo-img,
         .video-wrapper .stream-id-overlay {
           display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+          position: absolute !important;
+          left: -9999px !important;
+          width: 0 !important;
+          height: 0 !important;
         }
 
         .stream-welcome {

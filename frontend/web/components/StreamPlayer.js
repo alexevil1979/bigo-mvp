@@ -262,8 +262,13 @@ export default function StreamPlayer({ stream, user }) {
     <div className="stream-player">
       {error && <div className="error">{error}</div>}
       <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '300px' }}>
-        {/* Скрываем любые overlay с ID и логотипом */}
+        {/* Скрываем любые overlay с ID и логотипом - универсальные правила */}
         <style jsx>{`
+          .stream-player div[class*="video-overlay-gradient"],
+          .stream-player div[class*="overlay-content"],
+          .stream-player img[class*="nio-logo-img"],
+          .stream-player div[class*="stream-id-overlay"],
+          .stream-player div[class*="stream-info-overlay"],
           .stream-player *[class*="overlay"],
           .stream-player *[class*="logo"],
           .stream-player *[class*="id"],
@@ -275,6 +280,11 @@ export default function StreamPlayer({ stream, user }) {
             display: none !important;
             visibility: hidden !important;
             opacity: 0 !important;
+            pointer-events: none !important;
+            position: absolute !important;
+            left: -9999px !important;
+            width: 0 !important;
+            height: 0 !important;
           }
         `}</style>
         <video
