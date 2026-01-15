@@ -30,7 +30,8 @@
     "qrcode": "^1.5.4",
     "socket.io": "^4.6.1",
     "stripe": "^14.7.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "whatwg-url": "^11.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
