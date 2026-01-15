@@ -7,6 +7,8 @@ export default function StreamCard({ stream }) {
   const socketRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [overlayImage, setOverlayImage] = useState(null);
+  const [showOverlay, setShowOverlay] = useState(false);
 
   useEffect(() => {
     if (!stream) return;
@@ -91,6 +93,15 @@ export default function StreamCard({ stream }) {
           }
         });
 
+        // Слушаем изменения заставки от стримера
+        const overlayHandler = (data) => {
+          if (data.streamId === stream._id) {
+            setOverlayImage(data.overlayImage);
+            setShowOverlay(data.enabled);
+          }
+        };
+        socket.on('stream-overlay-changed', overlayHandler);
+
       } catch (err) {
         console.error('Ошибка настройки превью:', err);
       }
@@ -103,6 +114,7 @@ export default function StreamCard({ stream }) {
         peerConnectionRef.current.close();
       }
       if (socketRef.current) {
+        socketRef.current.off('stream-overlay-changed');
         socketRef.current.emit('leave-stream', { streamId: stream._id });
         socketRef.current.disconnect();
       }
@@ -112,7 +124,7 @@ export default function StreamCard({ stream }) {
   return (
     <Link href={`/stream/${stream._id}`}>
       <div className="stream-card">
-        <div className="stream-thumbnail">
+        <div className="stream-thumbnail" style={{ position: 'relative' }}>
           <video
             ref={videoRef}
             autoPlay
@@ -120,6 +132,20 @@ export default function StreamCard({ stream }) {
             muted
             className="stream-preview-video"
           />
+          {overlayImage && showOverlay && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              backgroundImage: `url(${overlayImage})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              pointerEvents: 'none',
+              zIndex: 5
+            }} />
+          )}
           {!isConnected && (
             <div className="preview-loading">
               <div className="loading-spinner"></div>
