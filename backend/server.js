@@ -62,6 +62,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Статические файлы (аватары)
+app.use('/uploads', express.static('uploads'));
+
 // Подключение к MongoDB
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/streaming-mvp';
 

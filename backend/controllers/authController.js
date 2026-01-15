@@ -198,3 +198,53 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
+/**
+ * Загрузка аватара
+ */
+exports.uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Файл не загружен' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    // Сохраняем путь к файлу
+    const avatarPath = `/uploads/avatars/${req.file.filename}`;
+    user.avatar = avatarPath;
+    await user.save();
+
+    res.json({
+      message: 'Аватар загружен',
+      avatar: avatarPath,
+      user: {
+        id: user._id,
+        email: user.email,
+        nickname: user.nickname,
+        avatar: user.avatar,
+        coins: user.coins,
+        beans: user.beans,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Ошибка загрузки аватара:', error);
+    res.status(500).json({ error: 'Ошибка при загрузке аватара' });
+  }
+};
+
+/**
+ * Генерация случайного аватара
+ */
+function generateRandomAvatar() {
+  const avatars = [
+    '🐱', '🐶', '🐰', '🐻', '🐼', '🐨', '🐯', '🦁',
+    '🐸', '🐷', '🐮', '🐵', '🐔', '🐧', '🐦', '🦊',
+    '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐢'
+  ];
+  return avatars[Math.floor(Math.random() * avatars.length)];
+}
+
