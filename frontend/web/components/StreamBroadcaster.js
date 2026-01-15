@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import io from 'socket.io-client';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import Chat from './Chat';
 import ViewerList from './ViewerList';

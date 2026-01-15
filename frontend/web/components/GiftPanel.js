@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 
 const GIFT_TYPES = {

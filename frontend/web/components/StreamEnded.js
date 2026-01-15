@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import axios from 'axios';
+import axios from '../lib/axios';
 import StreamCard from './StreamCard';
 
 export default function StreamEnded({ stream }) {

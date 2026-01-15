@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import io from 'socket.io-client';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 
 // Увеличиваем таймаут для axios по умолчанию

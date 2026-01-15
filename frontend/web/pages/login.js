@@ -1,12 +1,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import QRCodeLogin from '../components/QRCodeLogin';
-
-// Увеличиваем таймаут для axios по умолчанию
-axios.defaults.timeout = 30000; // 30 секунд
 
 export default function Login() {
   const router = useRouter();
