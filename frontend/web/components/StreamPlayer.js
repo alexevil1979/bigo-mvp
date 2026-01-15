@@ -81,15 +81,26 @@ export default function StreamPlayer({ stream, user }) {
             
             // Автоматически запускаем воспроизведение
             if (mediaStream && videoRef.current) {
-              videoRef.current.play().catch(err => {
-                console.error('Ошибка автоматического воспроизведения:', err);
-                // Если автоплей заблокирован, показываем сообщение
-                setError('Нажмите play для воспроизведения');
-              });
+              videoRef.current.playsInline = true;
+              const playPromise = videoRef.current.play();
+              if (playPromise !== undefined) {
+                playPromise
+                  .then(() => {
+                    setIsConnected(true);
+                    setError('');
+                  })
+                  .catch(err => {
+                    console.error('Ошибка автоматического воспроизведения:', err);
+                    // Если автоплей заблокирован, показываем сообщение
+                    setError('Нажмите play для воспроизведения');
+                    // Но все равно считаем, что видео загружено
+                    setIsConnected(true);
+                  });
+              } else {
+                setIsConnected(true);
+                setError('');
+              }
             }
-            
-            setIsConnected(true);
-            setError('');
           }
         };
         
@@ -99,8 +110,28 @@ export default function StreamPlayer({ stream, user }) {
           if (pc.connectionState === 'connected') {
             setIsConnected(true);
             setError('');
+            // Пытаемся запустить воспроизведение, если еще не запущено
+            if (videoRef.current && videoRef.current.paused && videoRef.current.srcObject) {
+              videoRef.current.play().catch(() => {});
+            }
           } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
             setError('Соединение потеряно');
+            setIsConnected(false);
+          }
+        };
+        
+        // Обработка состояния ICE соединения
+        pc.oniceconnectionstatechange = () => {
+          console.log('WebRTC ICE connection state:', pc.iceConnectionState);
+          if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+            setIsConnected(true);
+            setError('');
+            if (videoRef.current && videoRef.current.paused && videoRef.current.srcObject) {
+              videoRef.current.play().catch(() => {});
+            }
+          } else if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+            setError('Соединение потеряно');
+            setIsConnected(false);
           }
         };
 

@@ -66,21 +66,41 @@ export default function StreamCard({ stream }) {
             
             if (mediaStream && videoRef.current) {
               videoRef.current.muted = true;
-              videoRef.current.play().catch(() => {});
-              // Устанавливаем isConnected после небольшой задержки, чтобы видео успело загрузиться
-              setTimeout(() => {
-                if (videoRef.current && videoRef.current.srcObject) {
-                  setIsConnected(true);
-                }
-              }, 100);
+              videoRef.current.playsInline = true;
+              // Пытаемся запустить воспроизведение
+              const playPromise = videoRef.current.play();
+              if (playPromise !== undefined) {
+                playPromise
+                  .then(() => {
+                    setIsConnected(true);
+                  })
+                  .catch(() => {
+                    // Автоплей заблокирован, но видео загружено
+                    setIsConnected(true);
+                  });
+              } else {
+                setIsConnected(true);
+              }
             }
           }
         };
         
         // Отслеживание состояния соединения
         pc.onconnectionstatechange = () => {
+          console.log('Preview WebRTC connection state:', pc.connectionState);
           if (pc.connectionState === 'connected' && videoRef.current && videoRef.current.srcObject) {
             setIsConnected(true);
+          } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+            setIsConnected(false);
+          }
+        };
+        
+        // Обработка ошибок ICE
+        pc.oniceconnectionstatechange = () => {
+          if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+            if (videoRef.current && videoRef.current.srcObject) {
+              setIsConnected(true);
+            }
           }
         };
 
@@ -199,7 +219,7 @@ export default function StreamCard({ stream }) {
             autoPlay
             playsInline
             muted
-            className="stream-preview-video"
+            className={`stream-preview-video ${isConnected ? 'is-connected' : ''}`}
             style={{
               position: 'absolute',
               top: 0,
@@ -210,22 +230,54 @@ export default function StreamCard({ stream }) {
               display: 'block',
               backgroundColor: 'transparent',
               opacity: isConnected ? 1 : 0,
-              transition: 'opacity 0.3s',
+              transition: 'opacity 0.3s ease-in-out',
               zIndex: 2
             }}
             onLoadedMetadata={() => {
               if (videoRef.current && videoRef.current.srcObject) {
-                videoRef.current.play().catch(() => {});
+                const playPromise = videoRef.current.play();
+                if (playPromise !== undefined) {
+                  playPromise
+                    .then(() => {
+                      setIsConnected(true);
+                    })
+                    .catch(() => {
+                      // Автоплей заблокирован, но видео загружено
+                      if (videoRef.current && videoRef.current.srcObject) {
+                        setIsConnected(true);
+                      }
+                    });
+                }
               }
             }}
             onCanPlay={() => {
               if (videoRef.current && videoRef.current.srcObject) {
-                setIsConnected(true);
-                videoRef.current.play().catch(() => {});
+                const playPromise = videoRef.current.play();
+                if (playPromise !== undefined) {
+                  playPromise
+                    .then(() => {
+                      setIsConnected(true);
+                    })
+                    .catch(() => {
+                      // Автоплей заблокирован, но видео загружено
+                      if (videoRef.current && videoRef.current.srcObject) {
+                        setIsConnected(true);
+                      }
+                    });
+                } else {
+                  setIsConnected(true);
+                }
               }
             }}
             onPlay={() => {
               setIsConnected(true);
+            }}
+            onPlaying={() => {
+              setIsConnected(true);
+            }}
+            onError={(e) => {
+              console.error('Превью: ошибка видео элемента:', e);
+              setIsConnected(false);
             }}
           />
           {showOverlay && overlayType === 'image' && overlayImage && (
