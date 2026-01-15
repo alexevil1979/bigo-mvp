@@ -1,9 +1,11 @@
+const path = require('path');
+
 module.exports = {
   apps: [{
     name: 'nio-frontend',
     script: 'npm',
     args: 'start',
-    cwd: process.cwd(),
+    cwd: path.resolve(__dirname),
     instances: 1,
     exec_mode: 'fork',
     env: {
