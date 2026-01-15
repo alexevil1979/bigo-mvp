@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# Скрипт для автоматической настройки .env.local из конфигурации TURN сервера
+# Использование: ./setup-turn-env-from-server.sh
+
+echo "🔧 Настройка переменных окружения для TURN сервера из конфигурации..."
+
+# Проверяем, существует ли конфигурация TURN сервера
+TURN_CONF="/etc/turnserver.conf"
+
+if [ ! -f "$TURN_CONF" ]; then
+    echo "❌ Файл конфигурации TURN сервера не найден: $TURN_CONF"
+    echo "   Установите TURN сервер или укажите путь к конфигурации вручную"
+    exit 1
+fi
+
+# Извлекаем секретный ключ из конфигурации TURN сервера
+TURN_SECRET=$(sudo grep "^static-auth-secret" "$TURN_CONF" | cut -d'=' -f2 | tr -d ' ')
+
+if [ -z "$TURN_SECRET" ]; then
+    echo "❌ Секретный ключ TURN сервера не найден в конфигурации"
+    echo "   Добавьте в $TURN_CONF строку: static-auth-secret=ВАШ_СЕКРЕТНЫЙ_КЛЮЧ"
+    exit 1
+fi
+
+echo "✅ Найден секретный ключ TURN сервера"
+
+# Путь к файлу .env.local
+ENV_FILE=".env.local"
+
+# Создаем или обновляем .env.local
+cat > "$ENV_FILE" << EOF
+# WebRTC TURN сервер для мобильных устройств
+NEXT_PUBLIC_WEBRTC_TURN_SERVER=turn:bigo.1tlt.ru:3478?transport=udp
+NEXT_PUBLIC_WEBRTC_TURN_SECRET=$TURN_SECRET
+
+# Socket и API URL
+NEXT_PUBLIC_SOCKET_URL=https://api.bigo.1tlt.ru
+NEXT_PUBLIC_API_URL=https://api.bigo.1tlt.ru
+EOF
+
+echo "✅ Файл $ENV_FILE создан/обновлен"
+echo ""
+echo "📋 Содержимое файла:"
+cat "$ENV_FILE"
+echo ""
+echo "✅ Готово! Теперь пересоберите фронтенд:"
+echo "   rm -rf .next"
+echo "   npm run build"
+echo "   pm2 restart nio-frontend"
+
