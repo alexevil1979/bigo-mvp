@@ -103,14 +103,15 @@ webrtcService.initialize(io);
 const Stream = require('./models/Stream');
 const checkInactiveStreams = async () => {
   try {
-    const thirtySecondsAgo = new Date(Date.now() - 30 * 1000);
+    // Увеличиваем время до 60 секунд для более надежной работы
+    const sixtySecondsAgo = new Date(Date.now() - 60 * 1000);
     
-    // Находим все активные стримы без heartbeat более 30 секунд
+    // Находим все активные стримы без heartbeat более 60 секунд
     // Включая стримы, у которых lastHeartbeat null или очень старый
     const inactiveStreams = await Stream.find({
       status: 'live',
       $or: [
-        { lastHeartbeat: { $lt: thirtySecondsAgo } },
+        { lastHeartbeat: { $lt: sixtySecondsAgo } },
         { lastHeartbeat: null },
         { lastHeartbeat: { $exists: false } }
       ]
@@ -118,6 +119,10 @@ const checkInactiveStreams = async () => {
 
     for (const stream of inactiveStreams) {
       const lastHeartbeat = stream.lastHeartbeat;
+      const timeSinceHeartbeat = lastHeartbeat 
+        ? Math.floor((Date.now() - lastHeartbeat.getTime()) / 1000)
+        : 'неизвестно';
+      
       const timeSinceHeartbeat = lastHeartbeat 
         ? Math.floor((Date.now() - lastHeartbeat.getTime()) / 1000)
         : 'неизвестно';

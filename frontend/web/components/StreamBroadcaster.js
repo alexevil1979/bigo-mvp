@@ -106,17 +106,24 @@ export default function StreamBroadcaster({ stream, user }) {
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
       }
+      
+      // Отправляем heartbeat каждые 5 секунд для надежности
       heartbeatIntervalRef.current = setInterval(() => {
-        if (socketRef.current && socketRef.current.connected) {
+        if (socketRef.current && socketRef.current.connected && stream?._id) {
           socketRef.current.emit('stream-heartbeat', {
             streamId: stream._id
           });
+        } else {
+          console.warn('Не могу отправить heartbeat: socket не подключен или нет stream._id');
         }
-      }, 10 * 1000);
+      }, 5 * 1000);
 
-      socketRef.current.emit('stream-heartbeat', {
-        streamId: stream._id
-      });
+      // Отправляем первый heartbeat сразу
+      if (socketRef.current && socketRef.current.connected && stream?._id) {
+        socketRef.current.emit('stream-heartbeat', {
+          streamId: stream._id
+        });
+      }
 
       setIsStreaming(true);
     } catch (error) {
@@ -291,8 +298,16 @@ export default function StreamBroadcaster({ stream, user }) {
     setShowOverlay(enabled);
     
     // Отправляем информацию о заставке всем зрителям через socket
-    if (socketRef.current && stream?._id) {
-      console.log('Отправляю событие заставки:', { streamId: stream._id, enabled, type, hasOverlay: !!overlay });
+    if (socketRef.current && stream?._id && socketRef.current.connected) {
+      // Для видео проверяем размер - если слишком большой, предупреждаем
+      if (type === 'video' && enabled && overlay) {
+        const base64Length = overlay.length;
+        const sizeInMB = (base64Length * 3) / 4 / 1024 / 1024;
+        if (sizeInMB > 10) {
+          alert(`Внимание: размер видео заставки ${sizeInMB.toFixed(1)}MB. Рекомендуется использовать файлы до 10MB для лучшей синхронизации.`);
+        }
+      }
+      
       socketRef.current.emit('stream-overlay-changed', {
         streamId: stream._id,
         overlayImage: type === 'image' && enabled ? overlay : null,
@@ -300,6 +315,8 @@ export default function StreamBroadcaster({ stream, user }) {
         overlayType: enabled ? type : null,
         enabled: enabled
       });
+    } else if (!socketRef.current?.connected) {
+      console.warn('Socket не подключен, не могу отправить событие заставки');
     }
   };
 
