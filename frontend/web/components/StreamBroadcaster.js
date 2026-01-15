@@ -281,9 +281,22 @@ export default function StreamBroadcaster({ stream, user }) {
   };
 
   return (
-    <div className="nio-stream-page">
-      {/* Верхняя панель управления */}
-      <div className="stream-header">
+    <>
+      <div className="container">
+        <header className="header">
+          <h1><img src="/favicon.ico" alt="NIO" className="logo-icon" /> NIO - LIVE</h1>
+          <nav>
+            <Link href="/">Главная</Link>
+            <span className="user-info">
+              👤 {user?.nickname || 'Стример'}
+            </span>
+            <Link href="/profile">Профиль</Link>
+          </nav>
+        </header>
+      </div>
+      <div className="nio-stream-page">
+        {/* Верхняя панель управления */}
+        <div className="stream-header">
         <div className="streamer-profile">
           <div className="streamer-avatar">
             {user?.avatar ? (
@@ -767,6 +780,7 @@ export default function StreamBroadcaster({ stream, user }) {
           }
         }
       `}</style>
-    </div>
+      </div>
+    </>
   );
 }
