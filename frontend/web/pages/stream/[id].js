@@ -58,6 +58,39 @@ export default function StreamPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Удаляем overlay с ID и логотипом из DOM при монтировании и обновлении
+  useEffect(() => {
+    const removeOverlay = () => {
+      // Ищем и удаляем все элементы с overlay
+      const selectors = [
+        '[class*="video-overlay-gradient"]',
+        '[class*="overlay-content"]',
+        '[class*="nio-logo-img"]',
+        '[class*="stream-id-overlay"]',
+        '[class*="stream-info-overlay"]'
+      ];
+      
+      selectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+          // Проверяем, что элемент находится внутри video-wrapper или stream-player
+          const isInVideoWrapper = el.closest('.video-wrapper') || el.closest('.stream-player');
+          if (isInVideoWrapper) {
+            el.remove();
+          }
+        });
+      });
+    };
+
+    // Удаляем сразу
+    removeOverlay();
+    
+    // Удаляем периодически на случай, если элемент создается динамически
+    const interval = setInterval(removeOverlay, 100);
+    
+    return () => clearInterval(interval);
+  }, [id]);
+
   const fetchStream = async () => {
     try {
       const response = await axios.get(
