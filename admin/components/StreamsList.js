@@ -127,9 +127,9 @@ export default function StreamsList() {
                     {statusBadge.text}
                   </span>
                 </td>
-                <td>{formatDate(stream.createdAt)}</td>
+                <td>{formatDate(stream.startedAt || stream.createdAt)}</td>
                 <td>{formatDate(stream.endedAt)}</td>
-                <td>{calculateDuration(stream.createdAt, stream.endedAt)}</td>
+                <td>{calculateDuration(stream.startedAt || stream.createdAt, stream.endedAt)}</td>
                 <td>{stream.viewerCount || 0}</td>
                 <td>{stream.stats?.totalGifts || 0}</td>
                 <td>

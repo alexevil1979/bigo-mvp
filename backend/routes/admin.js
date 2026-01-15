@@ -140,7 +140,7 @@ router.get('/streams', async (req, res) => {
     }
 
     const streams = await Stream.find(query)
-      .populate('streamer', 'nickname email')
+      .populate('streamer', 'nickname email avatar')
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
