@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Profile() {
