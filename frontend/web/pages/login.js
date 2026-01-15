@@ -32,7 +32,10 @@ export default function Login() {
     try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/login`,
-        formData
+        formData,
+        {
+          timeout: 10000 // 10 секунд для логина
+        }
       );
 
       if (response.data.token) {
@@ -40,7 +43,13 @@ export default function Login() {
         router.push('/');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Ошибка входа');
+      if (err.code === 'ECONNABORTED' || err.code === 'ERR_TIMED_OUT' || err.code === 'ETIMEDOUT') {
+        setError('Сервер не отвечает. Проверьте подключение к интернету или попробуйте позже.');
+      } else if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
+        setError('Ошибка сети. Сервер недоступен. Проверьте подключение к интернету.');
+      } else {
+        setError(err.response?.data?.error || 'Ошибка входа. Проверьте email и пароль.');
+      }
     } finally {
       setLoading(false);
     }

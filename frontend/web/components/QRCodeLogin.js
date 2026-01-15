@@ -38,11 +38,17 @@ export default function QRCodeLogin() {
     };
   }, []);
 
-  const generateQRCode = async () => {
+  const generateQRCode = async (retryCount = 0) => {
     try {
-      // Создаем сессию для QR-кода
+      setStatus('waiting');
+      
+      // Создаем сессию для QR-кода с таймаутом
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/qr-session`
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/qr-session`,
+        {},
+        {
+          timeout: 10000 // 10 секунд для QR-кода
+        }
       );
 
       const { sessionId: newSessionId, qrData } = response.data;
@@ -50,7 +56,14 @@ export default function QRCodeLogin() {
       setQrCode(qrData);
 
       // Подключаемся к Socket.IO для получения уведомлений
-      const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+      
+      const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000', {
+        timeout: 10000,
+        transports: ['websocket', 'polling']
+      });
       socketRef.current = socket;
 
       // Слушаем событие успешного сканирования
@@ -64,7 +77,20 @@ export default function QRCodeLogin() {
         }
       });
 
+      // Обработка ошибок подключения Socket.IO
+      socket.on('connect_error', (error) => {
+        console.error('Ошибка подключения Socket.IO:', error);
+        if (retryCount < 2) {
+          setTimeout(() => generateQRCode(retryCount + 1), 2000);
+        } else {
+          setStatus('error');
+        }
+      });
+
       // Обновляем QR-код каждые 60 секунд
+      if (qrIntervalRef.current) {
+        clearInterval(qrIntervalRef.current);
+      }
       qrIntervalRef.current = setInterval(() => {
         generateQRCode();
       }, 60000);
@@ -72,7 +98,14 @@ export default function QRCodeLogin() {
       setStatus('waiting');
     } catch (error) {
       console.error('Ошибка генерации QR-кода:', error);
-      setStatus('error');
+      
+      // Повторная попытка при таймауте (максимум 2 попытки)
+      if ((error.code === 'ECONNABORTED' || error.code === 'ERR_TIMED_OUT' || error.code === 'ETIMEDOUT') && retryCount < 2) {
+        console.log(`Повторная попытка генерации QR-кода (${retryCount + 1}/2)...`);
+        setTimeout(() => generateQRCode(retryCount + 1), 2000);
+      } else {
+        setStatus('error');
+      }
     }
   };
 
@@ -101,7 +134,23 @@ export default function QRCodeLogin() {
             )}
             {status === 'error' && (
               <div className="qr-status error">
-                <p>Ошибка. Обновите страницу</p>
+                <p>⚠️ Сервер недоступен</p>
+                <button 
+                  onClick={() => generateQRCode()} 
+                  className="retry-button"
+                  style={{
+                    marginTop: '10px',
+                    padding: '8px 16px',
+                    background: '#667eea',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  Повторить попытку
+                </button>
               </div>
             )}
           </div>
