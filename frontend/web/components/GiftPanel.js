@@ -87,7 +87,7 @@ export default function GiftPanel({ streamId, user }) {
       <div className="recent-gifts">
         <h4>Последние подарки</h4>
         {gifts.length === 0 ? (
-          <p>Подарков пока нет</p>
+          <p style={{ fontSize: '11px', color: '#999', textAlign: 'center', padding: '10px' }}>Подарков пока нет</p>
         ) : (
           <div className="gifts-list">
             {gifts.map((gift, index) => (

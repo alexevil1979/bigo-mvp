@@ -355,6 +355,7 @@ export default function Chat({ streamId, user }) {
           align-items: center;
           gap: 6px;
           width: 100%;
+          box-sizing: border-box;
         }
 
         .chat-input-with-emoji {
