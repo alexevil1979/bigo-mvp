@@ -659,6 +659,16 @@ export default function StreamBroadcaster({ stream, user }) {
           object-fit: contain;
         }
 
+        /* Скрываем любые overlay с ID и логотипом */
+        .video-wrapper .stream-info-overlay,
+        .video-wrapper .streamer-id,
+        .video-wrapper .video-overlay-gradient,
+        .video-wrapper .overlay-content,
+        .video-wrapper .nio-logo-img,
+        .video-wrapper .stream-id-overlay {
+          display: none !important;
+        }
+
         .stream-welcome {
           text-align: center;
           padding: 15px;
