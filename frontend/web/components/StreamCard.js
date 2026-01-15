@@ -109,11 +109,16 @@ export default function StreamCard({ stream }) {
         const offerHandler = async (data) => {
           if (data.streamId === stream._id && (data.targetId === userId || !data.targetId)) {
             try {
-              if (pc.remoteDescription) return;
+              if (pc.remoteDescription) {
+                console.log('Превью: remoteDescription уже установлен');
+                return;
+              }
+              console.log('Превью: получен offer, устанавливаю remoteDescription');
               await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
               const answer = await pc.createAnswer();
               await pc.setLocalDescription(answer);
 
+              console.log('Превью: отправляю answer');
               socket.emit('webrtc-answer', {
                 streamId: stream._id,
                 answer: answer,
@@ -125,6 +130,17 @@ export default function StreamCard({ stream }) {
           }
         };
         socket.on('webrtc-offer', offerHandler);
+        
+        // Также слушаем answer (на случай если стример инициирует соединение)
+        socket.on('webrtc-answer', async (data) => {
+          if (data.streamId === stream._id) {
+            try {
+              await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+            } catch (error) {
+              console.error('Ошибка установки answer для превью:', error);
+            }
+          }
+        });
 
         // Слушаем ICE кандидаты
         socket.on('webrtc-ice-candidate', async (data) => {
@@ -205,15 +221,28 @@ export default function StreamCard({ stream }) {
               zIndex: 2
             }}
             onLoadedMetadata={() => {
+              console.log('Превью: метаданные загружены');
               if (videoRef.current && videoRef.current.srcObject) {
-                videoRef.current.play().catch(() => {});
+                videoRef.current.play().catch((err) => {
+                  console.error('Превью: ошибка play в onLoadedMetadata:', err);
+                });
               }
             }}
             onCanPlay={() => {
+              console.log('Превью: видео готово к воспроизведению');
               if (videoRef.current && videoRef.current.srcObject) {
                 setIsConnected(true);
-                videoRef.current.play().catch(() => {});
+                videoRef.current.play().catch((err) => {
+                  console.error('Превью: ошибка play в onCanPlay:', err);
+                });
               }
+            }}
+            onPlay={() => {
+              console.log('Превью: видео воспроизводится');
+              setIsConnected(true);
+            }}
+            onError={(e) => {
+              console.error('Превью: ошибка видео элемента:', e);
             }}
           />
           {showOverlay && overlayType === 'image' && overlayImage && (

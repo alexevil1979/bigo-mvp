@@ -199,7 +199,6 @@ export default function StreamPage() {
               <span className="streamer-name">{stream.streamer?.nickname || 'Стример'}</span>
               <span className="online-indicator">●</span>
             </div>
-            <div className="streamer-id">NIO ID: {stream.streamer?._id?.toString().slice(-10) || 'N/A'}</div>
           </div>
           <div className="streamer-stats">
             <div className="stat-item">

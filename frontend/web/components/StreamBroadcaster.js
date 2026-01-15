@@ -350,7 +350,6 @@ export default function StreamBroadcaster({ stream, user }) {
               <span className="streamer-name">{user?.nickname || 'Стример'}</span>
               <span className="online-indicator">● LIVE</span>
             </div>
-            <div className="streamer-id">NIO ID: {user?.id?.toString().slice(-10) || 'N/A'}</div>
           </div>
           <div className="streamer-stats">
             <div className="stat-item">
