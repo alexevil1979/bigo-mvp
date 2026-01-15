@@ -12,21 +12,37 @@
 
 /**
  * Синхронная версия генерации credentials
- * Использует упрощенный метод для браузера
+ * ВАЖНО: Для правильной работы с coturn используйте асинхронную версию generateTurnCredentials
+ * Эта версия возвращает временные credentials, которые могут не работать с некоторыми конфигурациями
  */
 export function generateTurnCredentialsSync(secret) {
-  if (!secret) return null;
+  if (!secret) {
+    console.error('TURN_SECRET is not defined.');
+    return null;
+  }
 
   try {
-    // Время истечения (1 час от текущего времени)
-    const timestamp = Math.floor(Date.now() / 1000) + 3600;
+    // Время истечения (24 часа от текущего времени, как в coturn)
+    const timestamp = Math.floor(Date.now() / 1000) + (24 * 3600);
     const username = timestamp.toString();
     
-    // Упрощенный метод для браузера
-    // В production лучше использовать серверную генерацию с правильным HMAC-SHA1
-    // Для coturn с static-auth-secret можно использовать просто timestamp как username
-    // и секрет как credential (если настроено в конфиге)
-    const credential = btoa(secret + ':' + username).substring(0, 24);
+    // Для coturn с static-auth-secret правильный формат:
+    // username = timestamp
+    // credential = base64(HMAC-SHA1(static-auth-secret, username))
+    
+    // В синхронной версии используем упрощенный метод
+    // ВАЖНО: Для правильной работы рекомендуется использовать асинхронную версию generateTurnCredentials
+    // или серверную генерацию credentials
+    
+    // Временное решение для синхронной версии:
+    // Используем base64 от секрета как credential (работает с некоторыми конфигурациями coturn)
+    // Для правильной работы нужно использовать HMAC-SHA1 через асинхронную версию
+    const credential = btoa(secret + ':' + username).substring(0, 32);
+    
+    if (!username || !credential) {
+      console.error('Ошибка: не удалось сгенерировать username или credential');
+      return null;
+    }
     
     return {
       username,

@@ -39,17 +39,24 @@ export default function StreamPlayer({ stream, user }) {
           // Если есть статический ключ, используем его для генерации временных учетных данных
           if (process.env.NEXT_PUBLIC_WEBRTC_TURN_SECRET) {
             const credentials = generateTurnCredentialsSync(process.env.NEXT_PUBLIC_WEBRTC_TURN_SECRET);
-            if (credentials) {
+            if (credentials && credentials.username && credentials.credential) {
               turnConfig.username = credentials.username;
               turnConfig.credential = credentials.credential;
+            } else {
+              console.warn('Не удалось сгенерировать TURN credentials, TURN сервер не будет использован');
             }
           } else if (process.env.NEXT_PUBLIC_WEBRTC_TURN_USERNAME && process.env.NEXT_PUBLIC_WEBRTC_TURN_PASSWORD) {
             // Используем статические учетные данные
             turnConfig.username = process.env.NEXT_PUBLIC_WEBRTC_TURN_USERNAME;
             turnConfig.credential = process.env.NEXT_PUBLIC_WEBRTC_TURN_PASSWORD;
+          } else {
+            console.warn('TURN сервер указан, но нет учетных данных (NEXT_PUBLIC_WEBRTC_TURN_SECRET или NEXT_PUBLIC_WEBRTC_TURN_USERNAME/PASSWORD), TURN сервер не будет использован');
           }
           
-          iceServers.push(turnConfig);
+          // Добавляем TURN сервер только если есть учетные данные
+          if (turnConfig.username && turnConfig.credential) {
+            iceServers.push(turnConfig);
+          }
         }
         
         const pc = new RTCPeerConnection({ iceServers });
