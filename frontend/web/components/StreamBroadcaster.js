@@ -665,8 +665,17 @@ export default function StreamBroadcaster({ stream, user }) {
         .video-wrapper .video-overlay-gradient,
         .video-wrapper .overlay-content,
         .video-wrapper .nio-logo-img,
-        .video-wrapper .stream-id-overlay {
+        .video-wrapper .stream-id-overlay,
+        .video-wrapper *[class*="overlay"],
+        .video-wrapper *[class*="logo"],
+        .video-wrapper *[class*="id"],
+        .video-wrapper *[id*="overlay"],
+        .video-wrapper *[id*="logo"],
+        .video-wrapper *[id*="id"],
+        .video-wrapper div[style*="gradient"] {
           display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
         }
 
         .stream-welcome {

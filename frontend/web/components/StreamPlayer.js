@@ -262,6 +262,21 @@ export default function StreamPlayer({ stream, user }) {
     <div className="stream-player">
       {error && <div className="error">{error}</div>}
       <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '300px' }}>
+        {/* Скрываем любые overlay с ID и логотипом */}
+        <style jsx>{`
+          .stream-player *[class*="overlay"],
+          .stream-player *[class*="logo"],
+          .stream-player *[class*="id"],
+          .stream-player *[id*="overlay"],
+          .stream-player *[id*="logo"],
+          .stream-player *[id*="id"],
+          .stream-player div:has-text("ID:"),
+          .stream-player > div > div[style*="gradient"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+          }
+        `}</style>
         <video
           ref={videoRef}
           autoPlay
