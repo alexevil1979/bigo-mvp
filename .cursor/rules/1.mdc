@@ -1,0 +1,11 @@
+
+---
+alwaysApply: true
+IMPORTANT:
+All git commands must be fully non-interactive.
+Use cmd /c for git commit and git push.
+Never invoke interactive shells.
+Set GIT_TERMINAL_PROMPT=0.
+Do not wait for user input.
+
+---

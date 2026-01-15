@@ -1,8 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
-
-// Увеличиваем таймаут для axios по умолчанию
-axios.defaults.timeout = 30000; // 30 секунд
+import axios from '../lib/axios';
 
 const AuthContext = createContext();
 

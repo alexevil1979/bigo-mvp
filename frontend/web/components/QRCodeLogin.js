@@ -4,9 +4,6 @@ import io from 'socket.io-client';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 
-// Увеличиваем таймаут для axios по умолчанию
-axios.defaults.timeout = 30000; // 30 секунд
-
 /**
  * Компонент QR-кода для входа через мобильное приложение
  * 
