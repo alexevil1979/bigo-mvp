@@ -292,8 +292,21 @@ sudo a2enmod proxy
 sudo a2enmod proxy_http
 sudo a2enmod proxy_wstunnel
 sudo a2enmod rewrite
-sudo a2enmod ssl  # если используете HTTPS
+sudo a2enmod headers
+sudo a2enmod ssl  # обязательно для HTTPS
+
+# Перезагрузите Apache для применения модулей
+sudo systemctl restart apache2
 ```
+
+**Важно:** Модуль `ssl` нужен обязательно, даже если SSL еще не настроен. Он понадобится после получения сертификата через Certbot.
+
+**Проверка модулей:**
+```bash
+apache2ctl -M | grep -E "proxy|rewrite|headers|ssl"
+```
+
+Должны быть: `proxy_module`, `proxy_http_module`, `proxy_wstunnel_module`, `rewrite_module`, `headers_module`, `ssl_module` (если используете HTTPS)
 
 ### 8.2. Создайте конфигурационный файл
 
@@ -307,41 +320,77 @@ sudo nano /etc/apache2/sites-available/bigo-frontend.conf
 <VirtualHost *:80>
     ServerName bigo.1tlt.ru
     
-    # Редирект на HTTPS (если используете SSL)
+    # Логи
+    ErrorLog ${APACHE_LOG_DIR}/bigo-frontend-error.log
+    CustomLog ${APACHE_LOG_DIR}/bigo-frontend-access.log combined
+    
+    # Редирект на HTTPS (если используете SSL) - раскомментируйте:
     # Redirect permanent / https://bigo.1tlt.ru/
     
-    # Если без SSL:
+    # Если без SSL, используйте эту секцию:
     ProxyPreserveHost On
     ProxyRequests Off
     
+    # Основной прокси для Next.js
     ProxyPass / http://localhost:3000/
     ProxyPassReverse / http://localhost:3000/
     
-    # Для WebSocket
-    RewriteEngine on
-    RewriteCond %{HTTP:Upgrade} websocket [NC]
-    RewriteCond %{HTTP:Connection} upgrade [NC]
-    RewriteRule ^/?(.*) "ws://localhost:3000/$1" [P,L]
+    # Заголовки для правильной работы прокси
+    ProxyPassReverse / http://localhost:3000/
+    RequestHeader set X-Forwarded-Proto "http"
+    RequestHeader set X-Forwarded-Port "80"
+    RequestHeader set X-Real-IP %{REMOTE_ADDR}s
+    
+    # Для WebSocket (Socket.IO)
+    RewriteEngine On
+    RewriteCond %{HTTP:Upgrade} =websocket [NC]
+    RewriteRule /(.*) ws://localhost:3000/$1 [P,L]
+    RewriteCond %{HTTP:Upgrade} !=websocket [NC]
+    RewriteRule /(.*) http://localhost:3000/$1 [P,L]
+    
+    # Таймауты для WebSocket
+    ProxyTimeout 86400
 </VirtualHost>
 
 # Если используете HTTPS:
 <VirtualHost *:443>
     ServerName bigo.1tlt.ru
     
+    # Логи
+    ErrorLog ${APACHE_LOG_DIR}/bigo-frontend-ssl-error.log
+    CustomLog ${APACHE_LOG_DIR}/bigo-frontend-ssl-access.log combined
+    
+    # SSL настройки
     SSLEngine on
     SSLCertificateFile /etc/letsencrypt/live/bigo.1tlt.ru/fullchain.pem
     SSLCertificateKeyFile /etc/letsencrypt/live/bigo.1tlt.ru/privkey.pem
     
+    # SSL Security
+    SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1
+    SSLCipherSuite ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384
+    SSLHonorCipherOrder off
+    
+    # Proxy настройки
     ProxyPreserveHost On
     ProxyRequests Off
     
     ProxyPass / http://localhost:3000/
     ProxyPassReverse / http://localhost:3000/
     
-    RewriteEngine on
-    RewriteCond %{HTTP:Upgrade} websocket [NC]
-    RewriteCond %{HTTP:Connection} upgrade [NC]
-    RewriteRule ^/?(.*) "ws://localhost:3000/$1" [P,L]
+    # Заголовки для HTTPS
+    RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Port "443"
+    RequestHeader set X-Real-IP %{REMOTE_ADDR}s
+    
+    # Для WebSocket (Socket.IO)
+    RewriteEngine On
+    RewriteCond %{HTTP:Upgrade} =websocket [NC]
+    RewriteRule /(.*) ws://localhost:3000/$1 [P,L]
+    RewriteCond %{HTTP:Upgrade} !=websocket [NC]
+    RewriteRule /(.*) http://localhost:3000/$1 [P,L]
+    
+    # Таймауты для WebSocket
+    ProxyTimeout 86400
 </VirtualHost>
 ```
 
@@ -394,30 +443,101 @@ curl http://localhost:3000
 
 ---
 
-## Шаг 10: Настройка SSL (если еще не настроен)
+## Шаг 10: Настройка SSL для Apache (обязательно для продакшена)
 
-### 10.1. Установите Certbot
+### 10.1. Установите Certbot для Apache
 
 ```bash
 sudo apt-get update
-sudo apt-get install certbot python3-certbot-nginx
-# или для Apache:
-# sudo apt-get install certbot python3-certbot-apache
+sudo apt-get install certbot python3-certbot-apache
 ```
 
-### 10.2. Получите SSL-сертификат
+### 10.2. Убедитесь, что Apache запущен и конфигурация работает
 
-Для Nginx:
 ```bash
-sudo certbot --nginx -d bigo.1tlt.ru
+# Проверьте, что Apache работает
+sudo systemctl status apache2
+
+# Проверьте конфигурацию
+sudo apache2ctl configtest
 ```
 
-Для Apache:
+**Важно:** Перед получением SSL-сертификата убедитесь, что:
+- Домен `bigo.1tlt.ru` указывает на IP вашего сервера (A-запись в DNS)
+- Apache настроен и отвечает на HTTP (порт 80 открыт)
+- Конфигурация `bigo-frontend.conf` активна и работает
+
+### 10.3. Получите SSL-сертификат через Certbot
+
 ```bash
 sudo certbot --apache -d bigo.1tlt.ru
 ```
 
-Certbot автоматически настроит SSL и редирект с HTTP на HTTPS.
+**Во время установки Certbot спросит:**
+1. Email для уведомлений (введите ваш email)
+2. Согласие с условиями (нажмите `A` для Agree)
+3. Редирект HTTP на HTTPS (выберите `2` для Redirect - рекомендуется)
+
+Certbot автоматически:
+- Получит SSL-сертификат от Let's Encrypt
+- Настроит конфигурацию Apache для HTTPS
+- Добавит редирект с HTTP на HTTPS
+- Настроит автоматическое обновление сертификата
+
+### 10.4. Проверьте конфигурацию после Certbot
+
+```bash
+# Проверьте, что конфигурация корректна
+sudo apache2ctl configtest
+
+# Должно быть: Syntax OK
+```
+
+### 10.5. Проверьте SSL-сертификат
+
+```bash
+# Проверьте сертификат
+sudo certbot certificates
+
+# Или проверьте через openssl
+openssl s_client -connect bigo.1tlt.ru:443 -servername bigo.1tlt.ru
+```
+
+### 10.6. Проверьте автоматическое обновление
+
+```bash
+# Тестовый запуск обновления
+sudo certbot renew --dry-run
+
+# Проверьте, что таймер настроен
+sudo systemctl status certbot.timer
+```
+
+**Примечание:** Certbot автоматически настроит обновление сертификата. Сертификаты Let's Encrypt действительны 90 дней и обновляются автоматически.
+
+### 10.7. Если Certbot не может автоматически настроить Apache
+
+Если Certbot не смог автоматически настроить конфигурацию, сделайте вручную:
+
+1. **Сертификат будет в:**
+   ```bash
+   /etc/letsencrypt/live/bigo.1tlt.ru/fullchain.pem
+   /etc/letsencrypt/live/bigo.1tlt.ru/privkey.pem
+   ```
+
+2. **Обновите конфигурацию Apache** (см. Шаг 8.3) с правильными путями к сертификатам
+
+3. **Включите SSL модуль:**
+   ```bash
+   sudo a2enmod ssl
+   sudo systemctl restart apache2
+   ```
+
+4. **Активируйте сайт:**
+   ```bash
+   sudo a2ensite bigo-frontend.conf
+   sudo systemctl reload apache2
+   ```
 
 ---
 
