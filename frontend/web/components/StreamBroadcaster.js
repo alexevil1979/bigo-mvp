@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import io from 'socket.io-client';
 import axios from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
@@ -255,6 +256,7 @@ export default function StreamBroadcaster({ stream, user }) {
     
     // Отправляем информацию о заставке всем зрителям через socket
     if (socketRef.current && stream?._id) {
+      console.log('Отправляю событие заставки:', { streamId: stream._id, enabled, hasImage: !!image });
       socketRef.current.emit('stream-overlay-changed', {
         streamId: stream._id,
         overlayImage: enabled ? image : null,

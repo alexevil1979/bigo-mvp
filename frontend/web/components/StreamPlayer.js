@@ -152,7 +152,9 @@ export default function StreamPlayer({ stream, user }) {
 
         // Слушаем изменения заставки от стримера
         const overlayHandler = (data) => {
+          console.log('Получено событие заставки:', data);
           if (data.streamId === stream._id) {
+            console.log('Применяю заставку:', { overlayImage: data.overlayImage, enabled: data.enabled });
             setOverlayImage(data.overlayImage);
             setShowOverlay(data.enabled);
           }

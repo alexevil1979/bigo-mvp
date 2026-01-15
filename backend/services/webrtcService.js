@@ -129,8 +129,14 @@ const initialize = (socketIo) => {
       
       // Проверяем, что это стример
       if (socket.isStreamer && streamId) {
-        // Транслируем событие всем зрителям стрима
+        // Транслируем событие всем зрителям стрима в комнате WebRTC
         socket.to(`webrtc-${streamId}`).emit('stream-overlay-changed', {
+          streamId,
+          overlayImage,
+          enabled
+        });
+        // Также отправляем в комнату чата на случай, если зрители там
+        io.to(`stream-${streamId}`).emit('stream-overlay-changed', {
           streamId,
           overlayImage,
           enabled

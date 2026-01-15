@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
+import Head from 'next/head';
 import axios from '../../lib/axios';
 import { useAuth } from '../../contexts/AuthContext';
 import StreamPlayer from '../../components/StreamPlayer';
@@ -163,9 +165,37 @@ export default function StreamPage() {
   };
 
   return (
-    <div className="nio-stream-page">
-      {/* Верхняя панель с профилем стримера */}
-      <div className="stream-header">
+    <>
+      <Head>
+        <title>{stream.title || 'Стрим'} - NIO - LIVE</title>
+        <meta name="description" content={`Смотри стрим ${stream.streamer?.nickname || 'стримера'} на NIO`} />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+      <div className="container">
+        <header className="header">
+          <h1><img src="/favicon.ico" alt="NIO" className="logo-icon" /> NIO - LIVE</h1>
+          <nav>
+            <Link href="/">Главная</Link>
+            {isAuthenticated ? (
+              <>
+                <span className="user-info">
+                  👤 {user?.nickname || 'Пользователь'}
+                </span>
+                <Link href="/profile">Профиль</Link>
+                <Link href="/stream/create">Начать стрим</Link>
+              </>
+            ) : (
+              <>
+                <Link href="/login">Вход</Link>
+                <Link href="/register">Регистрация</Link>
+              </>
+            )}
+          </nav>
+        </header>
+      </div>
+      <div className="nio-stream-page">
+        {/* Верхняя панель с профилем стримера */}
+        <div className="stream-header">
         <div className="streamer-profile">
           <div className="streamer-avatar">
             {stream.streamer?.avatar ? (
@@ -709,7 +739,8 @@ export default function StreamPage() {
           }
         }
       `}</style>
-    </div>
+      </div>
+    </>
   );
 }
 
