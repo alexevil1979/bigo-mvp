@@ -1,14 +1,13 @@
 import Head from 'next/head';
 import { AuthProvider } from '../contexts/AuthContext';
 import Footer from '../components/Footer';
+import SEO from '../components/SEO';
 import '../styles/globals.css';
 
 export default function App({ Component, pageProps }) {
   return (
     <AuthProvider>
-      <Head>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <SEO />
       <div className="app-wrapper">
         <Component {...pageProps} />
         <Footer />

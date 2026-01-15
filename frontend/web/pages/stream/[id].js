@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import Head from 'next/head';
 import axios from '../../lib/axios';
 import { useAuth } from '../../contexts/AuthContext';
 import StreamPlayer from '../../components/StreamPlayer';
@@ -10,6 +9,7 @@ import StreamEnded from '../../components/StreamEnded';
 import Chat from '../../components/Chat';
 import GiftPanel from '../../components/GiftPanel';
 import Header from '../../components/Header';
+import SEO from '../../components/SEO';
 import io from 'socket.io-client';
 
 export default function StreamPage() {
@@ -165,13 +165,19 @@ export default function StreamPage() {
     return false;
   };
 
+  const streamImage = stream.streamer?.avatar || '/favicon.ico';
+  const streamUrl = typeof window !== 'undefined' ? window.location.href : '';
+
   return (
     <>
-      <Head>
-        <title>{stream.title || 'Стрим'} - NIO - LIVE</title>
-        <meta name="description" content={`Смотри стрим ${stream.streamer?.nickname || 'стримера'} на NIO`} />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <SEO
+        title={`${stream.title || 'Стрим'} - NIO - LIVE`}
+        description={`Смотри прямой стрим от ${stream.streamer?.nickname || 'стримера'} на NIO. ${stream.title || 'Присоединяйтесь к трансляции прямо сейчас!'}`}
+        keywords={`стрим, ${stream.streamer?.nickname || ''}, ${stream.category || ''}, live stream, NIO`}
+        image={streamImage}
+        url={streamUrl}
+        type="video.other"
+      />
       <div className="container">
         <Header />
       </div>

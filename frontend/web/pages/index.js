@@ -77,11 +77,11 @@ export default function Home() {
 
   return (
     <>
-      <Head>
-        <title>NIO - LIVE</title>
-        <meta name="description" content="NIO - платформа для прямых трансляций" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <SEO
+        title="NIO - LIVE | Платформа для прямых трансляций"
+        description="NIO - современная платформа для прямых трансляций. Смотрите стримы, общайтесь с друзьями, делитесь моментами в реальном времени."
+        keywords="стриминг, прямые трансляции, live stream, видео, общение, NIO"
+      />
       <div className="container">
       <Header />
 

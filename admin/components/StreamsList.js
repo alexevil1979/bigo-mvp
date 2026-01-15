@@ -41,6 +41,40 @@ export default function StreamsList() {
     return <div className="loading">Загрузка...</div>;
   }
 
+  const formatDate = (date) => {
+    if (!date) return '—';
+    return new Date(date).toLocaleString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const calculateDuration = (startTime, endTime) => {
+    if (!startTime) return '—';
+    const start = new Date(startTime);
+    const end = endTime ? new Date(endTime) : new Date();
+    const diff = Math.floor((end - start) / 1000);
+    const hours = Math.floor(diff / 3600);
+    const minutes = Math.floor((diff % 3600) / 60);
+    const seconds = diff % 60;
+    if (hours > 0) {
+      return `${hours}ч ${minutes}м`;
+    }
+    return `${minutes}м ${seconds}с`;
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      live: { text: 'LIVE', class: 'status-live' },
+      ended: { text: 'Завершен', class: 'status-ended' },
+      scheduled: { text: 'Запланирован', class: 'status-scheduled' }
+    };
+    return badges[status] || { text: status, class: '' };
+  };
+
   return (
     <div className="streams-list">
       <select
@@ -51,36 +85,64 @@ export default function StreamsList() {
         <option value="">Все стримы</option>
         <option value="live">Активные</option>
         <option value="ended">Завершенные</option>
+        <option value="scheduled">Запланированные</option>
       </select>
       <table className="admin-table">
         <thead>
           <tr>
+            <th>Аватар</th>
             <th>Название</th>
             <th>Стример</th>
             <th>Статус</th>
+            <th>Начало</th>
+            <th>Конец</th>
+            <th>Продолжительность</th>
             <th>Зрителей</th>
             <th>Подарков</th>
             <th>Действия</th>
           </tr>
         </thead>
         <tbody>
-          {streams.map(stream => (
-            <tr key={stream._id}>
-              <td>{stream.title}</td>
-              <td>{stream.streamer?.nickname}</td>
-              <td>{stream.status}</td>
-              <td>{stream.viewerCount}</td>
-              <td>{stream.stats?.totalGifts || 0}</td>
-              <td>
-                <button
-                  onClick={() => toggleBan(stream._id, stream.isBanned)}
-                  className={stream.isBanned ? 'unban-btn' : 'ban-btn'}
-                >
-                  {stream.isBanned ? 'Разбанить' : 'Забанить'}
-                </button>
-              </td>
-            </tr>
-          ))}
+          {streams.map(stream => {
+            const statusBadge = getStatusBadge(stream.status);
+            return (
+              <tr key={stream._id}>
+                <td>
+                  {stream.streamer?.avatar ? (
+                    <img 
+                      src={stream.streamer.avatar} 
+                      alt={stream.streamer.nickname}
+                      className="streamer-avatar-small"
+                    />
+                  ) : (
+                    <div className="avatar-placeholder-small">
+                      {stream.streamer?.nickname?.[0]?.toUpperCase() || 'U'}
+                    </div>
+                  )}
+                </td>
+                <td>{stream.title}</td>
+                <td>{stream.streamer?.nickname || 'Неизвестно'}</td>
+                <td>
+                  <span className={`status-badge ${statusBadge.class}`}>
+                    {statusBadge.text}
+                  </span>
+                </td>
+                <td>{formatDate(stream.createdAt)}</td>
+                <td>{formatDate(stream.endedAt)}</td>
+                <td>{calculateDuration(stream.createdAt, stream.endedAt)}</td>
+                <td>{stream.viewerCount || 0}</td>
+                <td>{stream.stats?.totalGifts || 0}</td>
+                <td>
+                  <button
+                    onClick={() => toggleBan(stream._id, stream.isBanned)}
+                    className={stream.isBanned ? 'unban-btn' : 'ban-btn'}
+                  >
+                    {stream.isBanned ? 'Разбанить' : 'Забанить'}
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
