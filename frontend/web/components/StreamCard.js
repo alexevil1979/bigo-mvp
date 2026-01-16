@@ -322,16 +322,6 @@ export default function StreamCard({ stream }) {
       if (videoElement.srcObject && videoElement.paused) {
         videoElement.play().catch(err => {
           console.error('Preview: ошибка автоматического воспроизведения при загрузке:', err);
-          // Для мобильных пробуем canvas
-          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-          if (isMobile && canvasRef.current && !useCanvas) {
-            setTimeout(() => {
-              setUseCanvas(true);
-              if (startCanvasCapture) {
-                startCanvasCapture();
-              }
-            }, 200);
-          }
         });
       }
     };
@@ -340,16 +330,6 @@ export default function StreamCard({ stream }) {
       if (videoElement.srcObject && videoElement.paused) {
         videoElement.play().catch(err => {
           console.error('Preview: ошибка автоматического воспроизведения:', err);
-          // Для мобильных пробуем canvas
-          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-          if (isMobile && canvasRef.current && !useCanvas) {
-            setTimeout(() => {
-              setUseCanvas(true);
-              if (startCanvasCapture) {
-                startCanvasCapture();
-              }
-            }, 200);
-          }
         });
       }
     };
@@ -357,11 +337,6 @@ export default function StreamCard({ stream }) {
     const handlePlay = () => {
       setIsConnected(true);
       setShowLoading(false);
-      // Если видео играет, отключаем canvas
-      if (useCanvas && animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        setUseCanvas(false);
-      }
     };
 
     videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
@@ -373,7 +348,7 @@ export default function StreamCard({ stream }) {
       videoElement.removeEventListener('canplay', handleCanPlay);
       videoElement.removeEventListener('play', handlePlay);
     };
-  }, [isConnected, useCanvas]);
+  }, [isConnected]);
 
   return (
     <Link href={`/stream/${stream._id}`}>
