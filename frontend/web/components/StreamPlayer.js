@@ -67,54 +67,107 @@ export default function StreamPlayer({ stream, user }) {
 
         // Обработка входящего потока
         pc.ontrack = (event) => {
-          console.log('Получен трек от стримера:', event);
+          console.log('[StreamPlayer] Получен трек от стримера:', event);
+          console.log('[StreamPlayer] event.streams:', event.streams);
+          console.log('[StreamPlayer] event.track:', event.track);
+          console.log('[StreamPlayer] event.track.kind:', event.track?.kind);
+          console.log('[StreamPlayer] event.track.readyState:', event.track?.readyState);
+          
           if (videoRef.current) {
             let mediaStream = null;
             if (event.streams && event.streams[0]) {
               mediaStream = event.streams[0];
+              console.log('[StreamPlayer] используем stream из event.streams[0], tracks:', mediaStream.getTracks().length);
               videoRef.current.srcObject = mediaStream;
             } else if (event.track) {
               // Альтернативный способ получения потока
               mediaStream = new MediaStream([event.track]);
+              console.log('[StreamPlayer] создан новый MediaStream из event.track');
               videoRef.current.srcObject = mediaStream;
             }
+            
+            console.log('[StreamPlayer] videoRef.current после установки srcObject:', {
+              srcObject: !!videoRef.current.srcObject,
+              readyState: videoRef.current.readyState,
+              paused: videoRef.current.paused,
+              muted: videoRef.current.muted,
+              playsInline: videoRef.current.playsInline,
+              videoWidth: videoRef.current.videoWidth,
+              videoHeight: videoRef.current.videoHeight
+            });
             
             // Автоматически запускаем воспроизведение
             if (mediaStream && videoRef.current) {
               videoRef.current.playsInline = true;
+              console.log('[StreamPlayer] пытаемся запустить play()');
               const playPromise = videoRef.current.play();
               if (playPromise !== undefined) {
                 playPromise
                   .then(() => {
+                    console.log('[StreamPlayer] видео воспроизводится успешно');
+                    console.log('[StreamPlayer] video state после play:', {
+                      paused: videoRef.current.paused,
+                      readyState: videoRef.current.readyState,
+                      currentTime: videoRef.current.currentTime,
+                      videoWidth: videoRef.current.videoWidth,
+                      videoHeight: videoRef.current.videoHeight
+                    });
                     setIsConnected(true);
                     setError('');
                   })
                   .catch(err => {
-                    console.error('Ошибка автоматического воспроизведения:', err);
+                    console.error('[StreamPlayer] Ошибка автоматического воспроизведения:', err);
+                    console.log('[StreamPlayer] video state при ошибке play:', {
+                      paused: videoRef.current.paused,
+                      readyState: videoRef.current.readyState,
+                      srcObject: !!videoRef.current.srcObject,
+                      videoWidth: videoRef.current.videoWidth,
+                      videoHeight: videoRef.current.videoHeight
+                    });
                     // Если автоплей заблокирован, показываем сообщение
                     setError('Нажмите play для воспроизведения');
                     // Но все равно считаем, что видео загружено
                     setIsConnected(true);
                   });
               } else {
+                console.log('[StreamPlayer] play() не вернул promise');
                 setIsConnected(true);
                 setError('');
               }
+            } else {
+              console.log('[StreamPlayer] нет mediaStream или videoRef.current');
             }
+          } else {
+            console.log('[StreamPlayer] videoRef.current отсутствует');
           }
         };
         
         // Обработка изменения состояния соединения
         pc.onconnectionstatechange = () => {
-          console.log('WebRTC connection state:', pc.connectionState);
+          console.log('[StreamPlayer] WebRTC connection state:', pc.connectionState);
+          console.log('[StreamPlayer] video state при connectionState change:', {
+            hasVideoRef: !!videoRef.current,
+            hasSrcObject: videoRef.current?.srcObject ? true : false,
+            readyState: videoRef.current?.readyState,
+            paused: videoRef.current?.paused,
+            videoWidth: videoRef.current?.videoWidth,
+            videoHeight: videoRef.current?.videoHeight,
+            isConnected: isConnected
+          });
+          
           if (pc.connectionState === 'connected') {
+            console.log('[StreamPlayer] соединение connected');
             setIsConnected(true);
             setError('');
             // Пытаемся запустить воспроизведение, если еще не запущено
             if (videoRef.current && videoRef.current.paused && videoRef.current.srcObject) {
-              videoRef.current.play().catch(() => {});
+              console.log('[StreamPlayer] пытаемся запустить play() при connected');
+              videoRef.current.play().catch(err => {
+                console.log('[StreamPlayer] ошибка play() при connected:', err);
+              });
             }
           } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+            console.log('[StreamPlayer] соединение failed/disconnected');
             setError('Соединение потеряно');
             setIsConnected(false);
           }
@@ -122,14 +175,28 @@ export default function StreamPlayer({ stream, user }) {
         
         // Обработка состояния ICE соединения
         pc.oniceconnectionstatechange = () => {
-          console.log('WebRTC ICE connection state:', pc.iceConnectionState);
+          console.log('[StreamPlayer] WebRTC ICE connection state:', pc.iceConnectionState);
+          console.log('[StreamPlayer] video state при ICE state change:', {
+            hasVideoRef: !!videoRef.current,
+            hasSrcObject: videoRef.current?.srcObject ? true : false,
+            readyState: videoRef.current?.readyState,
+            paused: videoRef.current?.paused,
+            videoWidth: videoRef.current?.videoWidth,
+            videoHeight: videoRef.current?.videoHeight
+          });
+          
           if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+            console.log('[StreamPlayer] ICE connected/completed');
             setIsConnected(true);
             setError('');
             if (videoRef.current && videoRef.current.paused && videoRef.current.srcObject) {
-              videoRef.current.play().catch(() => {});
+              console.log('[StreamPlayer] пытаемся запустить play() при ICE connected');
+              videoRef.current.play().catch(err => {
+                console.log('[StreamPlayer] ошибка play() при ICE connected:', err);
+              });
             }
           } else if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+            console.log('[StreamPlayer] ICE failed/disconnected');
             setError('Соединение потеряно');
             setIsConnected(false);
           }
