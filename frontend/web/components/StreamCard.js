@@ -476,27 +476,25 @@ export default function StreamCard({ stream }) {
               zIndex: 1
             }}
           />
-          {/* Canvas для мобильных устройств (fallback) */}
-          {useCanvas && (
-            <canvas
-              ref={canvasRef}
-              className="stream-preview-canvas"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                display: 'block',
-                backgroundColor: 'transparent',
-                opacity: isConnected ? 1 : 0,
-                transition: 'opacity 0.3s ease-in-out',
-                zIndex: 2,
-                visibility: isConnected ? 'visible' : 'hidden'
-              }}
-            />
-          )}
+          {/* Canvas для мобильных устройств (fallback) - всегда рендерим для мобильных */}
+          <canvas
+            ref={canvasRef}
+            className="stream-preview-canvas"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: useCanvas && (isConnected || videoRef.current?.srcObject) ? 'block' : 'none',
+              backgroundColor: 'transparent',
+              opacity: (isConnected || videoRef.current?.srcObject) ? 1 : 0,
+              transition: 'opacity 0.3s ease-in-out',
+              zIndex: 2,
+              visibility: useCanvas && (isConnected || videoRef.current?.srcObject) ? 'visible' : 'hidden'
+            }}
+          />
           {/* Видео превью */}
           <video
             ref={videoRef}
