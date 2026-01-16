@@ -7,12 +7,16 @@ import StreamPlayer from './StreamPlayer';
 export default function StreamCard({ stream }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const previewCanvasRef = useRef(null);
   const socketRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const previewAnimationFrameRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const [showLoading, setShowLoading] = useState(true);
   const [useCanvas, setUseCanvas] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [overlayImage, setOverlayImage] = useState(null);
   const [overlayVideo, setOverlayVideo] = useState(null);
   const [overlayType, setOverlayType] = useState(null);
