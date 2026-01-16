@@ -144,10 +144,16 @@ export default function StreamCard({ stream }) {
               setShowLoading(false);
             }
             
-            if (useCanvas || video.paused) {
+            // Продолжаем рисовать если видео на паузе или canvas активен
+            if (video.paused || canvasRef.current) {
               animationFrameRef.current = requestAnimationFrame(drawFrame);
             }
           };
+          
+          // Останавливаем предыдущую анимацию если есть
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+          }
           
           drawFrame();
         };
