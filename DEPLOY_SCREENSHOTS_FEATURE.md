@@ -48,12 +48,13 @@ cd C:\Users\1\Documents\bigo
 New-Item -ItemType Directory -Force -Path "backend\uploads\streams\screenshots"
 ```
 
-### 5. Перезапустите backend
+### 5. Обновите Backend
 
 Если используете PM2:
 
 ```powershell
 cd backend
+npm install
 pm2 restart nio-backend
 ```
 
@@ -61,16 +62,18 @@ pm2 restart nio-backend
 
 ```powershell
 # Остановите текущий процесс (Ctrl+C)
+npm install
 # Затем запустите снова
 npm run dev
 ```
 
-### 6. Пересоберите и перезапустите frontend
+### 6. Обновите Frontend
 
 Если используете PM2:
 
 ```powershell
 cd ..\frontend\web
+Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue
 npm run build
 pm2 restart nio-frontend
 ```
@@ -79,11 +82,34 @@ pm2 restart nio-frontend
 
 ```powershell
 # Остановите текущий процесс (Ctrl+C)
+Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue
+npm run build
 # Затем запустите снова
 npm run dev
 ```
 
-### 7. Проверьте работу
+### 7. Обновите Admin (если были изменения)
+
+Если используете PM2:
+
+```powershell
+cd ..\..\admin
+Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue
+npm run build
+pm2 restart nio-admin
+```
+
+Или если запускаете через npm:
+
+```powershell
+# Остановите текущий процесс (Ctrl+C)
+Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue
+npm run build
+# Затем запустите снова
+npm run dev
+```
+
+### 8. Проверьте работу
 
 1. Откройте http://localhost:3000/stream/create
 2. Начните стрим
@@ -98,19 +124,40 @@ npm run dev
 ssh root@ваш_сервер
 ```
 
-### 2. Выполните команды для обновления
+### 2. Обновите код из git
 
 ```bash
 cd /ssd/www/bigo-mvp
 git pull origin master
-cd frontend/web
+```
+
+### 3. Обновите Backend
+
+```bash
+cd /ssd/www/bigo-mvp/backend
+npm install
+pm2 restart nio-backend
+```
+
+### 4. Обновите Frontend
+
+```bash
+cd /ssd/www/bigo-mvp/frontend/web
 rm -rf .next
 npm run build
 pm2 restart nio-frontend
-pm2 status all
 ```
 
-### 3. Создайте директорию для скриншотов (если еще не создана)
+### 5. Обновите Admin (если были изменения)
+
+```bash
+cd /ssd/www/bigo-mvp/admin
+rm -rf .next
+npm run build
+pm2 restart nio-admin
+```
+
+### 6. Создайте директорию для скриншотов (если еще не создана)
 
 ```bash
 cd /ssd/www/bigo-mvp
@@ -118,11 +165,10 @@ mkdir -p backend/uploads/streams/screenshots
 chmod 755 backend/uploads/streams/screenshots
 ```
 
-### 4. Перезапустите backend (если нужно)
+### 7. Проверьте статус всех сервисов
 
 ```bash
-cd /ssd/www/bigo-mvp/backend
-pm2 restart nio-backend
+pm2 status all
 ```
 
 ### 8. Проверьте логи
