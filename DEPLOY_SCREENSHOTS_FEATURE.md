@@ -182,10 +182,13 @@ pm2 status all
 
 ```bash
 # Логи backend
-pm2 logs nio-backend --lines 50
+pm2 logs bigo-backend --lines 50
 
 # Логи frontend
 pm2 logs nio-frontend --lines 50
+
+# Логи admin
+pm2 logs nio-admin --lines 50
 ```
 
 ### 9. Проверьте работу
