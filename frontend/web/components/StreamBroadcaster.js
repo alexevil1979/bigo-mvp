@@ -668,6 +668,10 @@ export default function StreamBroadcaster({ stream, user }) {
           grid-template-columns: 1fr 350px;
           gap: 20px;
           margin-bottom: 20px;
+          align-items: start;
+          max-width: 1400px;
+          margin-left: auto;
+          margin-right: auto;
         }
 
         .stream-video-section {
