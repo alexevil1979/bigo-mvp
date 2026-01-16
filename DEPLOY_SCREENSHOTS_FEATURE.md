@@ -8,7 +8,89 @@
 - Автоматическая очистка скриншотов старше 1 дня
 - Использование скриншотов в превью стримов на главной странице
 
-## Шаги для переноса на сервер
+## Шаги для переноса на локальный сервер (Windows)
+
+### 1. Откройте терминал в директории проекта
+
+```powershell
+cd C:\Users\1\Documents\bigo
+```
+
+### 2. Получите последние изменения из git
+
+```powershell
+git pull origin master
+```
+
+### 3. Установите зависимости (если нужно)
+
+#### Backend
+
+```powershell
+cd backend
+npm install
+```
+
+#### Frontend
+
+```powershell
+cd ..\frontend\web
+npm install
+```
+
+### 4. Создайте директорию для скриншотов
+
+```powershell
+# Вернитесь в корень проекта
+cd C:\Users\1\Documents\bigo
+
+# Создайте директорию
+New-Item -ItemType Directory -Force -Path "backend\uploads\streams\screenshots"
+```
+
+### 5. Перезапустите backend
+
+Если используете PM2:
+
+```powershell
+cd backend
+pm2 restart nio-backend
+```
+
+Или если запускаете через npm:
+
+```powershell
+# Остановите текущий процесс (Ctrl+C)
+# Затем запустите снова
+npm run dev
+```
+
+### 6. Пересоберите и перезапустите frontend
+
+Если используете PM2:
+
+```powershell
+cd ..\frontend\web
+npm run build
+pm2 restart nio-frontend
+```
+
+Или если запускаете через npm:
+
+```powershell
+# Остановите текущий процесс (Ctrl+C)
+# Затем запустите снова
+npm run dev
+```
+
+### 7. Проверьте работу
+
+1. Откройте http://localhost:3000/stream/create
+2. Начните стрим
+3. Проверьте, что скриншоты создаются (должны появляться в `backend\uploads\streams\screenshots\`)
+4. Проверьте, что на главной странице отображаются скриншоты в превью стримов
+
+## Шаги для переноса на удаленный сервер
 
 ### 1. Подключитесь к серверу
 
