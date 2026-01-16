@@ -157,6 +157,11 @@ npm run build
 pm2 restart nio-admin
 ```
 
+**Примечание:** На удаленном сервере:
+- Backend находится в `/ssd/www/bigo-mvp/backend`
+- Admin находится в `/ssd/www/bigo-mvp/admin`
+- Frontend находится в `/ssd/www/bigo-mvp/frontend/web`
+
 ### 6. Создайте директорию для скриншотов (если еще не создана)
 
 ```bash
