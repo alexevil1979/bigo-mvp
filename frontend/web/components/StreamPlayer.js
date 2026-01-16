@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import io from 'socket.io-client';
 import { generateTurnCredentialsSync } from '../lib/turnAuth';
 
-export default function StreamPlayer({ stream, user }) {
+export default function StreamPlayer({ stream, user, autoPlay = true }) {
   const videoRef = useRef(null);
   const socketRef = useRef(null);
   const peerConnectionRef = useRef(null);
@@ -354,7 +354,7 @@ export default function StreamPlayer({ stream, user }) {
       videoElement.removeEventListener('canplay', handleCanPlay);
       videoElement.removeEventListener('play', handlePlay);
     };
-  }, [isConnected]);
+  }, [isConnected, autoPlay]);
 
   // Удаляем overlay с ID и логотипом из DOM при монтировании и обновлении
   useEffect(() => {

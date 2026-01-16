@@ -559,7 +559,7 @@ export default function StreamCard({ stream }) {
               position: 'relative',
               zIndex: showPreview && !isPlaying ? 1 : 2
             }}>
-              <StreamPlayer stream={stream} user={null} />
+              <StreamPlayer stream={stream} user={null} autoPlay={false} />
             </div>
           </div>
           <div className="live-badge" style={{ zIndex: 4 }}>LIVE</div>
@@ -578,7 +578,7 @@ export default function StreamCard({ stream }) {
         return isMobile ? (
           <div className="stream-mobile-player-wrapper">
             <div className="stream-mobile-player-container">
-              <StreamPlayer stream={stream} user={null} />
+              <StreamPlayer stream={stream} user={null} autoPlay={false} />
             </div>
           </div>
         ) : null;
