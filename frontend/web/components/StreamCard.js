@@ -473,9 +473,94 @@ export default function StreamCard({ stream }) {
     <Link href={`/stream/${stream._id}`}>
       <div className="stream-card">
         <div className="stream-thumbnail" style={{ position: 'relative' }}>
-          {/* Используем StreamPlayer вместо preview */}
-          <div className="stream-preview-player-container">
-            <StreamPlayer stream={stream} user={null} />
+          {/* Контейнер для плеера */}
+          <div className="stream-preview-player-container" style={{ position: 'relative' }}>
+            {/* Canvas для превью кадра */}
+            {showPreview && !isPlaying && (
+              <canvas
+                ref={previewCanvasRef}
+                className="stream-preview-frame"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  zIndex: 2,
+                  backgroundColor: '#000'
+                }}
+              />
+            )}
+            
+            {/* Кнопка play поверх превью */}
+            {showPreview && !isPlaying && (
+              <button
+                className="stream-play-button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowPreview(false);
+                  setIsPlaying(true);
+                  // Находим video элемент внутри StreamPlayer и запускаем его
+                  const playerContainer = e.currentTarget.closest('.stream-preview-player-container');
+                  if (playerContainer) {
+                    const videoElement = playerContainer.querySelector('video');
+                    if (videoElement) {
+                      videoElement.play().catch(err => {
+                        console.error('Ошибка запуска видео:', err);
+                      });
+                    }
+                  }
+                }}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  background: 'rgba(0, 0, 0, 0.6)',
+                  border: '3px solid rgba(255, 255, 255, 0.9)',
+                  cursor: 'pointer',
+                  zIndex: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.3s ease',
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)';
+                  e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.6)';
+                  e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1)';
+                }}
+              >
+                <svg
+                  width="40"
+                  height="40"
+                  viewBox="0 0 24 24"
+                  fill="white"
+                  style={{ marginLeft: '4px' }}
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </button>
+            )}
+            
+            {/* StreamPlayer - скрыт пока показывается превью */}
+            <div style={{ 
+              opacity: showPreview && !isPlaying ? 0 : 1,
+              transition: 'opacity 0.3s ease',
+              position: 'relative',
+              zIndex: showPreview && !isPlaying ? 1 : 2
+            }}>
+              <StreamPlayer stream={stream} user={null} />
+            </div>
           </div>
           <div className="live-badge" style={{ zIndex: 4 }}>LIVE</div>
         </div>
