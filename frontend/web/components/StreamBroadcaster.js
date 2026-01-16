@@ -684,28 +684,14 @@ export default function StreamBroadcaster({ stream, user }) {
         /* Псевдоэлемент для фона на всю ширину экрана */
         .stream-video-section::before {
           content: '';
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          background-image: url('/bg1.png');
-          background-size: cover;
-          background-position: center;
-          background-repeat: no-repeat;
-          z-index: -1;
-          pointer-events: none;
-        }
-        
-        /* Альтернативный вариант через абсолютное позиционирование */
-        .stream-video-section::after {
-          content: '';
           position: absolute;
           top: 0;
-          left: calc(-50vw + 50%);
-          right: calc(-50vw + 50%);
+          left: 0;
+          right: 0;
           width: 100vw;
           height: 100%;
+          margin-left: calc(-50vw + 50%);
+          margin-right: calc(-50vw + 50%);
           background-image: url('/bg1.png');
           background-size: cover;
           background-position: center;
