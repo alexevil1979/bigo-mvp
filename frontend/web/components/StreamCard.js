@@ -636,6 +636,30 @@ export default function StreamCard({ stream }) {
         </div>
       </div>
       
+      {/* Отдельный блок для отображения превью кадра (для отладки) */}
+      <div className="stream-preview-frame-debug" style={{
+        width: '100%',
+        marginTop: '10px',
+        padding: '10px',
+        background: '#f5f5f5',
+        borderRadius: '8px',
+        display: showPreview && !isPlaying ? 'block' : 'none'
+      }}>
+        <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>Превью кадр (отладка):</div>
+        <canvas
+          ref={previewCanvasRef}
+          style={{
+            width: '100%',
+            maxWidth: '300px',
+            height: 'auto',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            backgroundColor: '#000',
+            display: 'block'
+          }}
+        />
+      </div>
+      
       {/* Дополнительный блок с плеером для мобильных устройств */}
       {(() => {
         if (typeof window === 'undefined') return null;

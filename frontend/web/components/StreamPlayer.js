@@ -236,28 +236,32 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
         // Слушаем offer от стримера
         const offerHandler = async (data) => {
           if (data.streamId === stream._id && (data.targetId === userId || !data.targetId)) {
-            console.log('Получен offer от стримера:', data);
+            console.log('[StreamPlayer] Получен offer от стримера:', data);
             try {
-              // Если уже есть remote description, не устанавливаем снова
-              if (pc.remoteDescription) {
-                console.log('Remote description уже установлен, пропускаю');
-                return;
-              }
-              await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-              const answer = await pc.createAnswer();
-              await pc.setLocalDescription(answer);
+              // Проверяем состояние соединения перед установкой
+              if (pc.signalingState === 'stable' && !pc.remoteDescription) {
+                await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
 
-              console.log('Отправляю answer стримеру:', data.senderId);
-              socket.emit('webrtc-answer', {
-                streamId: stream._id,
-                answer: answer,
-                targetId: data.senderId || stream.streamer._id
-              });
-              setIsConnected(true);
+                console.log('[StreamPlayer] Отправляю answer стримеру:', data.senderId);
+                socket.emit('webrtc-answer', {
+                  streamId: stream._id,
+                  answer: answer,
+                  targetId: data.senderId || stream.streamer._id
+                });
+                setIsConnected(true);
+              } else if (pc.remoteDescription) {
+                console.log('[StreamPlayer] Remote description уже установлен, пропускаю');
+              } else {
+                console.log('[StreamPlayer] Неправильное состояние соединения для offer:', pc.signalingState);
+              }
             } catch (error) {
-              console.error('Ошибка обработки offer:', error);
-              // Если ошибка из-за того, что уже установлен, это нормально
-              if (!error.message.includes('already set')) {
+              console.error('[StreamPlayer] Ошибка обработки offer:', error);
+              // Если ошибка из-за состояния, пробуем переподключиться
+              if (error.message.includes('wrong state') || error.message.includes('stable')) {
+                console.log('[StreamPlayer] Ошибка состояния соединения, игнорируем');
+              } else if (!error.message.includes('already set')) {
                 setError('Ошибка подключения к стриму');
               }
             }
