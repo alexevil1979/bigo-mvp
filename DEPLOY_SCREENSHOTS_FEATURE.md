@@ -136,8 +136,10 @@ git pull origin master
 ```bash
 cd /ssd/www/bigo-mvp/backend
 npm install
-pm2 restart nio-backend
+pm2 restart bigo-backend
 ```
+
+**Примечание:** На удаленном сервере процесс backend называется `bigo-backend` (не nio-backend!)
 
 ### 4. Обновите Frontend
 
