@@ -288,3 +288,5 @@ sudo crontab -e
 2. Проверьте логи: `tail -f /var/log/bigo-*-update.log`
 3. Проверьте статус PM2: `pm2 status`
 
+
+

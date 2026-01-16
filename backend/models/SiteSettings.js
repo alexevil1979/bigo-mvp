@@ -74,3 +74,5 @@ SiteSettingsSchema.statics.setSetting = async function(key, value, options = {})
 
 module.exports = mongoose.model('SiteSettings', SiteSettingsSchema);
 
+
+

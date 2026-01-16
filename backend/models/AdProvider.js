@@ -38,3 +38,5 @@ const AdProviderSchema = new mongoose.Schema({
 
 module.exports = mongoose.model('AdProvider', AdProviderSchema);
 
+
+

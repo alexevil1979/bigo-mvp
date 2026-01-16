@@ -540,11 +540,12 @@ export default function StreamCard({ stream }) {
         <div className="stream-thumbnail" style={{ position: 'relative' }}>
           {/* Контейнер для плеера */}
           <div className="stream-preview-player-container" style={{ position: 'relative' }}>
-            {/* Canvas для превью кадра */}
-            {showPreview && !isPlaying && (
-              <canvas
-                ref={previewCanvasRef}
-                className="stream-preview-frame"
+            {/* Скриншот стрима для превью */}
+            {showPreview && !isPlaying && stream.lastScreenshot && (
+              <img
+                src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${stream.lastScreenshot}`}
+                alt={stream.title}
+                className="stream-preview-screenshot"
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -554,6 +555,10 @@ export default function StreamCard({ stream }) {
                   objectFit: 'cover',
                   zIndex: 2,
                   backgroundColor: '#000'
+                }}
+                onError={(e) => {
+                  // Если скриншот не загрузился, скрываем его
+                  e.target.style.display = 'none';
                 }}
               />
             )}

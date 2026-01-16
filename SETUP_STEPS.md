@@ -270,3 +270,5 @@ CORS_ORIGIN=http://localhost:3000,https://your-frontend-url.com
 3. Проверьте Network tab в DevTools
 4. Убедитесь, что все переменные окружения установлены
 
+
+

@@ -45,3 +45,5 @@ git push origin master
 - Файл должен быть в папке `frontend/web/public/`
 - Размер файла должен быть < 100KB (рекомендуется < 50KB)
 
+
+

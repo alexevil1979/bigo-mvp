@@ -85,6 +85,16 @@ const StreamSchema = new mongoose.Schema({
   banReason: {
     type: String,
     default: null
+  },
+  // Последний скриншот стрима
+  lastScreenshot: {
+    type: String,
+    default: null
+  },
+  // Время последнего скриншота
+  lastScreenshotAt: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true

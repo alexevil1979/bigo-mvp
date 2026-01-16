@@ -138,3 +138,5 @@ sudo systemctl restart coturn
 - ✅ Проблема была в отсутствии credentials в Trickle ICE
 - ✅ Фронтенд должен правильно генерировать credentials автоматически
 
+
+

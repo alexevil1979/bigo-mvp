@@ -77,3 +77,5 @@ pm2 restart bigo-backend --update-env
 pm2 logs bigo-backend --lines 30
 ```
 
+
+

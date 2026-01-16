@@ -206,3 +206,5 @@ pm2 show nio-frontend
 
 После выполнения этих шагов PM2 должен найти production build и запустить Next.js сервер.
 
+
+

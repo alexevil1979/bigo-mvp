@@ -276,3 +276,5 @@ curl http://localhost:3000
 
 После выполнения всех шагов ошибка `ENOENT: prerender-manifest.json` должна исчезнуть, и Next.js приложение будет работать корректно.
 
+
+

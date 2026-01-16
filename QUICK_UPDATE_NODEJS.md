@@ -167,3 +167,5 @@ sudo systemctl restart pm2-root
 
 После обновления Node.js и перезапуска PM2 ошибка "You are using Node.js 16.20.2" должна исчезнуть, и Next.js должен запуститься.
 
+
+

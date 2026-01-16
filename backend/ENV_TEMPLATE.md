@@ -160,3 +160,5 @@ pm2 restart bigo-backend --update-env
 
 4. **НИКОГДА не коммитьте .env файл в git!** Он должен быть в .gitignore
 
+
+

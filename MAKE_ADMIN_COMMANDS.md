@@ -118,3 +118,5 @@ mongosh "mongodb+srv://alexevil1979_db_user:5Vickv7p4yDVOKrX@free.wcg21p5.mongod
 
 Готово! 🎉
 
+
+

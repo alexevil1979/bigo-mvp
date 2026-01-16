@@ -27,6 +27,8 @@ export default function StreamBroadcaster({ stream, user }) {
   const [showOverlay, setShowOverlay] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const heartbeatIntervalRef = useRef(null);
+  const screenshotIntervalRef = useRef(null);
+  const screenshotCanvasRef = useRef(null);
 
   useEffect(() => {
     if (stream) {
@@ -37,6 +39,10 @@ export default function StreamBroadcaster({ stream, user }) {
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
+      }
+      if (screenshotIntervalRef.current) {
+        clearInterval(screenshotIntervalRef.current);
+        screenshotIntervalRef.current = null;
       }
     };
   }, [stream]);
@@ -158,6 +164,22 @@ export default function StreamBroadcaster({ stream, user }) {
         });
       }
 
+      // Создаем canvas для скриншотов, если его еще нет
+      if (!screenshotCanvasRef.current) {
+        screenshotCanvasRef.current = document.createElement('canvas');
+      }
+
+      // Захватываем первый скриншот сразу при старте
+      captureAndUploadScreenshot();
+
+      // Захватываем скриншоты каждые 30 секунд
+      if (screenshotIntervalRef.current) {
+        clearInterval(screenshotIntervalRef.current);
+      }
+      screenshotIntervalRef.current = setInterval(() => {
+        captureAndUploadScreenshot();
+      }, 30 * 1000); // 30 секунд
+
       setIsStreaming(true);
     } catch (error) {
       console.error('Ошибка запуска стрима:', error);
@@ -262,6 +284,66 @@ export default function StreamBroadcaster({ stream, user }) {
     }
   };
 
+  // Функция захвата и отправки скриншота
+  const captureAndUploadScreenshot = async () => {
+    try {
+      if (!videoRef.current || !stream?._id || !token) {
+        return;
+      }
+
+      const video = videoRef.current;
+      const canvas = screenshotCanvasRef.current;
+
+      // Проверяем, что видео загружено и имеет размеры
+      if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
+        console.log('Видео еще не готово для скриншота');
+        return;
+      }
+
+      // Устанавливаем размеры canvas
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      // Рисуем текущий кадр из video на canvas
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Конвертируем canvas в blob
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          console.error('Не удалось создать blob из canvas');
+          return;
+        }
+
+        // Создаем FormData для отправки
+        const formData = new FormData();
+        formData.append('screenshot', blob, 'screenshot.jpg');
+        formData.append('streamId', stream._id);
+
+        try {
+          // Отправляем скриншот на сервер
+          const response = await axios.post(
+            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams/screenshot`,
+            formData,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'multipart/form-data'
+              }
+            }
+          );
+
+          console.log('Скриншот успешно загружен:', response.data);
+        } catch (error) {
+          console.error('Ошибка загрузки скриншота:', error);
+          // Не прерываем стрим из-за ошибки скриншота
+        }
+      }, 'image/jpeg', 0.8); // JPEG с качеством 80%
+    } catch (error) {
+      console.error('Ошибка захвата скриншота:', error);
+    }
+  };
+
   const stopStreaming = async () => {
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
@@ -282,6 +364,11 @@ export default function StreamBroadcaster({ stream, user }) {
     if (heartbeatIntervalRef.current) {
       clearInterval(heartbeatIntervalRef.current);
       heartbeatIntervalRef.current = null;
+    }
+
+    if (screenshotIntervalRef.current) {
+      clearInterval(screenshotIntervalRef.current);
+      screenshotIntervalRef.current = null;
     }
 
     if (socketRef.current) {

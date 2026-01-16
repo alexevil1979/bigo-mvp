@@ -150,6 +150,15 @@ const checkInactiveStreams = async () => {
 // Проверяем неактивные стримы каждые 10 секунд
 setInterval(checkInactiveStreams, 10 * 1000);
 
+// Очистка старых скриншотов (каждый час)
+const streamController = require('./controllers/streamController');
+setInterval(() => {
+  streamController.cleanupOldScreenshots();
+}, 60 * 60 * 1000); // Каждый час
+
+// Очистка при запуске сервера
+streamController.cleanupOldScreenshots();
+
 // Обработка ошибок
 app.use((err, req, res, next) => {
   console.error('Ошибка:', err);

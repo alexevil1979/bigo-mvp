@@ -1,6 +1,8 @@
 const Stream = require('../models/Stream');
 const User = require('../models/User');
 const { v4: uuidv4 } = require('uuid');
+const path = require('path');
+const fs = require('fs');
 
 /**
  * Создание нового стрима
@@ -244,6 +246,145 @@ exports.updateViewerCount = async (req, res) => {
   } catch (error) {
     console.error('Ошибка обновления количества зрителей:', error);
     res.status(500).json({ error: 'Ошибка при обновлении количества зрителей' });
+  }
+};
+
+/**
+ * Сохранение скриншота стрима
+ */
+exports.uploadScreenshot = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Файл не загружен' });
+    }
+
+    const { streamId } = req.body;
+    if (!streamId) {
+      // Удаляем загруженный файл, если нет streamId
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'streamId обязателен' });
+    }
+
+    // Проверяем, что стрим существует и принадлежит пользователю
+    const stream = await Stream.findOne({
+      _id: streamId,
+      streamer: req.user._id,
+      status: 'live'
+    });
+
+    if (!stream) {
+      // Удаляем загруженный файл, если стрим не найден
+      fs.unlinkSync(req.file.path);
+      return res.status(404).json({ error: 'Стрим не найден или у вас нет прав' });
+    }
+
+    // Сохраняем путь к скриншоту
+    const screenshotPath = `/uploads/streams/screenshots/${req.file.filename}`;
+    
+    // Обновляем последний скриншот в стриме
+    stream.lastScreenshot = screenshotPath;
+    stream.lastScreenshotAt = new Date();
+    await stream.save();
+
+    res.json({
+      message: 'Скриншот сохранен',
+      screenshot: screenshotPath
+    });
+  } catch (error) {
+    console.error('Ошибка сохранения скриншота:', error);
+    // Удаляем файл в случае ошибки
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkError) {
+        console.error('Ошибка удаления файла:', unlinkError);
+      }
+    }
+    res.status(500).json({ error: 'Ошибка при сохранении скриншота' });
+  }
+};
+
+/**
+ * Получение последнего скриншота стрима
+ */
+exports.getScreenshot = async (req, res) => {
+  try {
+    const { streamId } = req.params;
+    
+    const stream = await Stream.findById(streamId);
+    if (!stream) {
+      return res.status(404).json({ error: 'Стрим не найден' });
+    }
+
+    // Если есть последний скриншот, возвращаем его
+    if (stream.lastScreenshot) {
+      const screenshotPath = path.join(__dirname, '../../', stream.lastScreenshot);
+      if (fs.existsSync(screenshotPath)) {
+        return res.json({
+          screenshot: stream.lastScreenshot,
+          screenshotAt: stream.lastScreenshotAt
+        });
+      }
+    }
+
+    // Если скриншота нет, возвращаем null
+    res.json({
+      screenshot: null,
+      screenshotAt: null
+    });
+  } catch (error) {
+    console.error('Ошибка получения скриншота:', error);
+    res.status(500).json({ error: 'Ошибка при получении скриншота' });
+  }
+};
+
+/**
+ * Очистка старых скриншотов (старше 1 дня)
+ */
+exports.cleanupOldScreenshots = async () => {
+  try {
+    const screenshotsDir = path.join(__dirname, '../../uploads/streams/screenshots');
+    if (!fs.existsSync(screenshotsDir)) {
+      return;
+    }
+
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000; // 1 день назад
+    const files = fs.readdirSync(screenshotsDir);
+
+    let deletedCount = 0;
+    for (const file of files) {
+      const filePath = path.join(screenshotsDir, file);
+      const stats = fs.statSync(filePath);
+      
+      // Удаляем файлы старше 1 дня
+      if (stats.mtimeMs < oneDayAgo) {
+        fs.unlinkSync(filePath);
+        deletedCount++;
+      }
+    }
+
+    if (deletedCount > 0) {
+      console.log(`Очищено ${deletedCount} старых скриншотов`);
+    }
+
+    // Также очищаем ссылки на удаленные скриншоты в стримах
+    const streams = await Stream.find({ 
+      lastScreenshot: { $exists: true, $ne: null },
+      status: 'live'
+    });
+
+    for (const stream of streams) {
+      if (stream.lastScreenshot) {
+        const screenshotPath = path.join(__dirname, '../../', stream.lastScreenshot);
+        if (!fs.existsSync(screenshotPath)) {
+          stream.lastScreenshot = null;
+          stream.lastScreenshotAt = null;
+          await stream.save();
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Ошибка очистки старых скриншотов:', error);
   }
 };
 

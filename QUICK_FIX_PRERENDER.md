@@ -55,3 +55,5 @@ curl http://localhost:3000
 
 Подробная инструкция: `FIX_PRERENDER_MANIFEST.md`
 
+
+

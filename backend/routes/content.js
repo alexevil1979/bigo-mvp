@@ -15,3 +15,5 @@ router.delete('/pages/:id', authenticate, requireAdmin, contentController.delete
 
 module.exports = router;
 
+
+
