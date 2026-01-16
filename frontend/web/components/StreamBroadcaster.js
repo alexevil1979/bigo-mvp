@@ -673,17 +673,30 @@ export default function StreamBroadcaster({ stream, user }) {
         .stream-video-section {
           display: flex;
           flex-direction: column;
-          width: 100vw;
           position: relative;
+          background-image: url('/bg1.png');
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
+          padding: 20px;
+        }
+        
+        /* Псевдоэлемент для фона на всю ширину */
+        .stream-video-section::before {
+          content: '';
+          position: absolute;
+          top: 0;
           left: 50%;
           right: 50%;
+          width: 100vw;
+          height: 100%;
           margin-left: -50vw;
           margin-right: -50vw;
           background-image: url('/bg1.png');
           background-size: cover;
           background-position: center;
           background-repeat: no-repeat;
-          padding: 20px;
+          z-index: -1;
         }
 
         .video-wrapper {
