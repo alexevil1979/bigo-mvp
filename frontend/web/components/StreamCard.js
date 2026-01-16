@@ -129,54 +129,100 @@ export default function StreamCard({ stream }) {
         
         // Функция для захвата кадров в canvas
         const startCanvasCapture = () => {
-          if (!videoRef.current || !canvasRef.current) return;
+          console.log('Preview: startCanvasCapture вызвана');
+          console.log('Preview: videoRef.current:', !!videoRef.current, 'canvasRef.current:', !!canvasRef.current);
+          
+          if (!videoRef.current || !canvasRef.current) {
+            console.log('Preview: startCanvasCapture - нет video или canvas');
+            return;
+          }
           
           const video = videoRef.current;
           const canvas = canvasRef.current;
           const ctx = canvas.getContext('2d');
           
+          console.log('Preview: canvas capture - video state:', {
+            readyState: video.readyState,
+            videoWidth: video.videoWidth,
+            videoHeight: video.videoHeight,
+            paused: video.paused,
+            hasSrcObject: !!video.srcObject
+          });
+          
           const drawFrame = () => {
             if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-              canvas.width = video.videoWidth;
-              canvas.height = video.videoHeight;
+              if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                console.log('Preview: canvas размеры установлены:', canvas.width, 'x', canvas.height);
+              }
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
               setIsConnected(true);
               setShowLoading(false);
+            } else {
+              console.log('Preview: canvas - видео еще не готово, readyState:', video.readyState, 'width:', video.videoWidth, 'height:', video.videoHeight);
             }
             
             // Продолжаем рисовать если видео на паузе или canvas активен
-            if (video.paused || canvasRef.current) {
+            if (useCanvas && canvasRef.current && videoRef.current && videoRef.current.srcObject) {
               animationFrameRef.current = requestAnimationFrame(drawFrame);
+            } else {
+              console.log('Preview: canvas остановлен - useCanvas:', useCanvas, 'hasCanvas:', !!canvasRef.current, 'hasVideo:', !!videoRef.current, 'hasSrcObject:', !!videoRef.current?.srcObject);
+              if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+                animationFrameRef.current = null;
+              }
             }
           };
           
           // Останавливаем предыдущую анимацию если есть
           if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
+            animationFrameRef.current = null;
           }
           
+          console.log('Preview: запускаем drawFrame');
           drawFrame();
         };
         
         // Отслеживание состояния соединения (как в StreamPlayer.js)
         pc.onconnectionstatechange = () => {
           console.log('Preview WebRTC connection state:', pc.connectionState);
+          console.log('Preview: video state при connectionState change:', {
+            hasVideoRef: !!videoRef.current,
+            hasSrcObject: videoRef.current?.srcObject ? true : false,
+            readyState: videoRef.current?.readyState,
+            paused: videoRef.current?.paused,
+            videoWidth: videoRef.current?.videoWidth,
+            videoHeight: videoRef.current?.videoHeight,
+            isConnected: isConnected
+          });
+          
           if (pc.connectionState === 'connected') {
+            console.log('Preview: соединение connected');
             setIsConnected(true);
             setShowLoading(false);
             // Пытаемся запустить воспроизведение, если еще не запущено
             if (videoRef.current && videoRef.current.paused && videoRef.current.srcObject) {
-              videoRef.current.play().catch(() => {});
+              console.log('Preview: пытаемся запустить play() при connected');
+              videoRef.current.play().catch(err => {
+                console.log('Preview: ошибка play() при connected:', err);
+              });
             }
           } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+            console.log('Preview: соединение failed/disconnected');
             // НЕ сбрасываем isConnected, если видео уже загружено (как в StreamPlayer.js)
             if (!videoRef.current || !videoRef.current.srcObject) {
+              console.log('Preview: нет видео - сбрасываем isConnected');
               setIsConnected(false);
+            } else {
+              console.log('Preview: видео есть - сохраняем isConnected');
             }
             // Для мобильных пробуем canvas, если видео не играет
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             if (isMobile && canvasRef.current && videoRef.current && videoRef.current.srcObject) {
               const videoPlaying = !videoRef.current.paused && videoRef.current.readyState >= 2;
+              console.log('Preview: проверка canvas - isMobile:', isMobile, 'videoPlaying:', videoPlaying, 'useCanvas:', useCanvas);
               if (!videoPlaying && !useCanvas) {
                 console.log('Preview: запускаем canvas для мобильных при failed соединении');
                 setTimeout(() => {
@@ -191,21 +237,39 @@ export default function StreamCard({ stream }) {
         // Обработка состояния ICE соединения (как в StreamPlayer.js)
         pc.oniceconnectionstatechange = () => {
           console.log('Preview: ICE connection state:', pc.iceConnectionState);
+          console.log('Preview: video state при ICE state change:', {
+            hasVideoRef: !!videoRef.current,
+            hasSrcObject: videoRef.current?.srcObject ? true : false,
+            readyState: videoRef.current?.readyState,
+            paused: videoRef.current?.paused,
+            videoWidth: videoRef.current?.videoWidth,
+            videoHeight: videoRef.current?.videoHeight
+          });
+          
           if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+            console.log('Preview: ICE connected/completed');
             setIsConnected(true);
             setShowLoading(false);
             if (videoRef.current && videoRef.current.paused && videoRef.current.srcObject) {
-              videoRef.current.play().catch(() => {});
+              console.log('Preview: пытаемся запустить play() при ICE connected');
+              videoRef.current.play().catch(err => {
+                console.log('Preview: ошибка play() при ICE connected:', err);
+              });
             }
           } else if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+            console.log('Preview: ICE failed/disconnected');
             // НЕ сбрасываем isConnected, если видео уже загружено (как в StreamPlayer.js)
             if (!videoRef.current || !videoRef.current.srcObject) {
+              console.log('Preview: нет видео при ICE failed - сбрасываем isConnected');
               setIsConnected(false);
+            } else {
+              console.log('Preview: видео есть при ICE failed - сохраняем isConnected');
             }
             // Для мобильных пробуем canvas, если видео не играет
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             if (isMobile && canvasRef.current && videoRef.current && videoRef.current.srcObject) {
               const videoPlaying = !videoRef.current.paused && videoRef.current.readyState >= 2;
+              console.log('Preview: проверка canvas при ICE failed - isMobile:', isMobile, 'videoPlaying:', videoPlaying, 'useCanvas:', useCanvas);
               if (!videoPlaying && !useCanvas) {
                 console.log('Preview: запускаем canvas для мобильных при ICE failed');
                 setTimeout(() => {
