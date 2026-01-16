@@ -167,16 +167,21 @@ export default function StreamBroadcaster({ stream, user }) {
       // Создаем canvas для скриншотов, если его еще нет
       if (!screenshotCanvasRef.current) {
         screenshotCanvasRef.current = document.createElement('canvas');
+        console.log('[Screenshot] Canvas создан для скриншотов');
       }
 
-      // Захватываем первый скриншот сразу при старте
-      captureAndUploadScreenshot();
+      // Захватываем первый скриншот сразу при старте (с небольшой задержкой, чтобы видео успело загрузиться)
+      setTimeout(() => {
+        console.log('[Screenshot] Захватываем первый скриншот при старте стрима');
+        captureAndUploadScreenshot();
+      }, 2000); // 2 секунды задержка
 
       // Захватываем скриншоты каждые 30 секунд
       if (screenshotIntervalRef.current) {
         clearInterval(screenshotIntervalRef.current);
       }
       screenshotIntervalRef.current = setInterval(() => {
+        console.log('[Screenshot] Захватываем скриншот (каждые 30 сек)');
         captureAndUploadScreenshot();
       }, 30 * 1000); // 30 секунд
 
@@ -287,7 +292,16 @@ export default function StreamBroadcaster({ stream, user }) {
   // Функция захвата и отправки скриншота
   const captureAndUploadScreenshot = async () => {
     try {
+      console.log('[Screenshot] Начало захвата скриншота', {
+        hasVideo: !!videoRef.current,
+        hasStream: !!stream,
+        streamId: stream?._id,
+        hasToken: !!token,
+        hasCanvas: !!screenshotCanvasRef.current
+      });
+
       if (!videoRef.current || !stream?._id || !token) {
+        console.warn('[Screenshot] Пропуск: нет video, stream или token');
         return;
       }
 
@@ -295,30 +309,47 @@ export default function StreamBroadcaster({ stream, user }) {
       const canvas = screenshotCanvasRef.current;
 
       // Проверяем, что видео загружено и имеет размеры
+      console.log('[Screenshot] Состояние видео:', {
+        readyState: video.readyState,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        paused: video.paused
+      });
+
       if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
-        console.log('Видео еще не готово для скриншота');
+        console.log('[Screenshot] Видео еще не готово для скриншота, readyState:', video.readyState);
         return;
       }
 
       // Устанавливаем размеры canvas
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
+      console.log('[Screenshot] Canvas размеры установлены:', canvas.width, 'x', canvas.height);
 
       // Рисуем текущий кадр из video на canvas
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      console.log('[Screenshot] Кадр нарисован на canvas');
 
       // Конвертируем canvas в blob
       canvas.toBlob(async (blob) => {
         if (!blob) {
-          console.error('Не удалось создать blob из canvas');
+          console.error('[Screenshot] Не удалось создать blob из canvas');
           return;
         }
+
+        console.log('[Screenshot] Blob создан, размер:', blob.size, 'bytes');
 
         // Создаем FormData для отправки
         const formData = new FormData();
         formData.append('screenshot', blob, 'screenshot.jpg');
         formData.append('streamId', stream._id);
+
+        console.log('[Screenshot] Отправка на сервер:', {
+          url: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams/screenshot`,
+          streamId: stream._id,
+          blobSize: blob.size
+        });
 
         try {
           // Отправляем скриншот на сервер
@@ -333,14 +364,17 @@ export default function StreamBroadcaster({ stream, user }) {
             }
           );
 
-          console.log('Скриншот успешно загружен:', response.data);
+          console.log('[Screenshot] Скриншот успешно загружен:', response.data);
         } catch (error) {
-          console.error('Ошибка загрузки скриншота:', error);
+          console.error('[Screenshot] Ошибка загрузки скриншота:', error);
+          if (error.response) {
+            console.error('[Screenshot] Ответ сервера:', error.response.status, error.response.data);
+          }
           // Не прерываем стрим из-за ошибки скриншота
         }
       }, 'image/jpeg', 0.8); // JPEG с качеством 80%
     } catch (error) {
-      console.error('Ошибка захвата скриншота:', error);
+      console.error('[Screenshot] Ошибка захвата скриншота:', error);
     }
   };
 

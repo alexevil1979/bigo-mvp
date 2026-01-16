@@ -254,16 +254,32 @@ exports.updateViewerCount = async (req, res) => {
  */
 exports.uploadScreenshot = async (req, res) => {
   try {
+    console.log('[Screenshot Upload] Получен запрос на загрузку скриншота');
+    console.log('[Screenshot Upload] req.file:', req.file ? {
+      filename: req.file.filename,
+      path: req.file.path,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    } : 'отсутствует');
+    console.log('[Screenshot Upload] req.body:', req.body);
+    console.log('[Screenshot Upload] req.user:', req.user ? { id: req.user._id } : 'отсутствует');
+
     if (!req.file) {
+      console.error('[Screenshot Upload] Ошибка: файл не загружен');
       return res.status(400).json({ error: 'Файл не загружен' });
     }
 
     const { streamId } = req.body;
     if (!streamId) {
+      console.error('[Screenshot Upload] Ошибка: streamId отсутствует');
       // Удаляем загруженный файл, если нет streamId
-      fs.unlinkSync(req.file.path);
+      if (req.file.path) {
+        fs.unlinkSync(req.file.path);
+      }
       return res.status(400).json({ error: 'streamId обязателен' });
     }
+
+    console.log('[Screenshot Upload] Поиск стрима:', streamId, 'для пользователя:', req.user._id);
 
     // Проверяем, что стрим существует и принадлежит пользователю
     const stream = await Stream.findOne({
@@ -273,31 +289,47 @@ exports.uploadScreenshot = async (req, res) => {
     });
 
     if (!stream) {
+      console.error('[Screenshot Upload] Ошибка: стрим не найден или не принадлежит пользователю');
       // Удаляем загруженный файл, если стрим не найден
-      fs.unlinkSync(req.file.path);
+      if (req.file.path) {
+        fs.unlinkSync(req.file.path);
+      }
       return res.status(404).json({ error: 'Стрим не найден или у вас нет прав' });
     }
 
+    console.log('[Screenshot Upload] Стрим найден:', stream._id);
+
     // Сохраняем путь к скриншоту
     const screenshotPath = `/uploads/streams/screenshots/${req.file.filename}`;
+    console.log('[Screenshot Upload] Путь к скриншоту:', screenshotPath);
+    console.log('[Screenshot Upload] Полный путь на диске:', req.file.path);
     
+    // Проверяем, что файл действительно существует
+    if (!fs.existsSync(req.file.path)) {
+      console.error('[Screenshot Upload] Ошибка: файл не существует по пути:', req.file.path);
+      return res.status(500).json({ error: 'Файл не был сохранен на диск' });
+    }
+
     // Обновляем последний скриншот в стриме
     stream.lastScreenshot = screenshotPath;
     stream.lastScreenshotAt = new Date();
     await stream.save();
+
+    console.log('[Screenshot Upload] Скриншот успешно сохранен:', screenshotPath);
 
     res.json({
       message: 'Скриншот сохранен',
       screenshot: screenshotPath
     });
   } catch (error) {
-    console.error('Ошибка сохранения скриншота:', error);
+    console.error('[Screenshot Upload] Ошибка сохранения скриншота:', error);
+    console.error('[Screenshot Upload] Stack:', error.stack);
     // Удаляем файл в случае ошибки
     if (req.file && req.file.path) {
       try {
         fs.unlinkSync(req.file.path);
       } catch (unlinkError) {
-        console.error('Ошибка удаления файла:', unlinkError);
+        console.error('[Screenshot Upload] Ошибка удаления файла:', unlinkError);
       }
     }
     res.status(500).json({ error: 'Ошибка при сохранении скриншота' });

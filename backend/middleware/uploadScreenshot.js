@@ -6,6 +6,9 @@ const fs = require('fs');
 const screenshotsDir = path.join(__dirname, '../../uploads/streams/screenshots');
 if (!fs.existsSync(screenshotsDir)) {
   fs.mkdirSync(screenshotsDir, { recursive: true });
+  console.log('[Screenshot] Директория создана:', screenshotsDir);
+} else {
+  console.log('[Screenshot] Директория существует:', screenshotsDir);
 }
 
 // Настройка хранилища для multer
@@ -17,7 +20,9 @@ const storage = multer.diskStorage({
     // Имя файла: streamId-timestamp.jpg
     const streamId = req.body.streamId || req.params.streamId || 'unknown';
     const timestamp = Date.now();
-    cb(null, `${streamId}-${timestamp}.jpg`);
+    const filename = `${streamId}-${timestamp}.jpg`;
+    console.log('[Screenshot] Имя файла:', filename, 'для streamId:', streamId);
+    cb(null, filename);
   }
 });
 
