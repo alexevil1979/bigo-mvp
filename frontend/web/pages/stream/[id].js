@@ -550,12 +550,29 @@ export default function StreamPage() {
           font-size: 16px;
         }
 
+        .stream-content-below-player {
+          width: 100vw;
+          position: relative;
+          left: 50%;
+          right: 50%;
+          margin-left: -50vw;
+          margin-right: -50vw;
+          background-image: url('/bg1.png');
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
+          padding: 20px 0;
+        }
+
         .stream-rules-warning {
-          background: #fff3cd;
+          background: rgba(255, 243, 205, 0.9);
           border-left: 4px solid #ffc107;
           padding: 15px;
           border-radius: 8px;
           margin-top: 15px;
+          max-width: 1400px;
+          margin-left: auto;
+          margin-right: auto;
         }
 
         .stream-rules-warning p {
