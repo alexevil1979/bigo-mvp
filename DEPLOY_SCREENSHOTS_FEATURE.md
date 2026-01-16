@@ -200,7 +200,7 @@ pm2 logs nio-frontend --lines 50
 Очистка запускается автоматически каждый час. Можно проверить логи:
 
 ```bash
-pm2 logs nio-backend | grep "Очищено.*скриншотов"
+pm2 logs bigo-backend | grep "Очищено.*скриншотов"
 ```
 
 ## Возможные проблемы и решения
@@ -213,7 +213,10 @@ pm2 logs nio-backend | grep "Очищено.*скриншотов"
    ls -la /ssd/www/bigo-mvp/backend/uploads/streams/screenshots
    ```
 2. Убедитесь, что директория существует и доступна для записи
-3. Проверьте логи backend на наличие ошибок
+3. Проверьте логи backend на наличие ошибок:
+   ```bash
+   pm2 logs bigo-backend --lines 50
+   ```
 
 ### Проблема: Скриншоты не отображаются в превью
 

@@ -70,7 +70,7 @@ pm2 status all
 
 ```bash
 # Логи backend
-pm2 logs nio-backend --lines 50
+pm2 logs bigo-backend --lines 50
 
 # Логи frontend
 pm2 logs nio-frontend --lines 50
