@@ -55,8 +55,10 @@ New-Item -ItemType Directory -Force -Path "backend\uploads\streams\screenshots"
 ```powershell
 cd backend
 npm install
-pm2 restart nio-backend
+pm2 restart bigo-backend
 ```
+
+**Примечание:** На удаленном сервере процесс backend называется `bigo-backend`. На локальном сервере может быть другое имя - проверьте через `pm2 list`.
 
 Или если запускаете через npm:
 
