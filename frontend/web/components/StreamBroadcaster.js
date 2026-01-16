@@ -684,7 +684,6 @@ export default function StreamBroadcaster({ stream, user }) {
           background-position: center;
           background-repeat: no-repeat;
           padding: 20px;
-          padding-top: 0;
         }
 
         .video-wrapper {
@@ -738,20 +737,6 @@ export default function StreamBroadcaster({ stream, user }) {
           padding: 15px;
           color: #666;
           font-size: 16px;
-        }
-
-        .stream-content-below-player {
-          width: 100vw;
-          position: relative;
-          left: 50%;
-          right: 50%;
-          margin-left: -50vw;
-          margin-right: -50vw;
-          background-image: url('/bg1.png');
-          background-size: cover;
-          background-position: center;
-          background-repeat: no-repeat;
-          padding: 20px 0;
         }
 
         .stream-rules-warning {
