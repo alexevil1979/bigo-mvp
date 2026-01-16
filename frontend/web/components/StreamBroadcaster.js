@@ -303,6 +303,12 @@ export default function StreamBroadcaster({ stream, user }) {
     }
 
     setIsStreaming(false);
+    
+    // Очищаем sessionStorage при завершении стрима
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('activeStream');
+    }
+    
     router.push('/');
   };
 
