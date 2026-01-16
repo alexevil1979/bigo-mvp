@@ -1,271 +1,254 @@
-# Исправление ошибки 503 (Service Unavailable)
+# Исправление ошибки 503 Service Unavailable
 
 ## Проблема
+- `GET https://bigo.1tlt.ru/ 503 (Service Unavailable)`
+- `GET https://bigo.1tlt.ru/favicon.ico 503 (Service Unavailable)`
 
-Ошибка `503 (Service Unavailable)` означает, что Apache не может подключиться к Next.js приложению на порту 3000.
+Это означает, что Apache не может подключиться к Next.js на `localhost:3000`.
 
-## Диагностика
+## Быстрая диагностика
 
 ### Шаг 1: Проверьте статус PM2
 
 ```bash
-pm2 status
+pm2 status all
 ```
 
-**Должен быть процесс `nio-frontend` со статусом `online`.**
+Должен быть запущен процесс `nio-frontend` со статусом `online`.
 
-Если статус `stopped` или `errored`:
+### Шаг 2: Проверьте, работает ли Next.js локально
+
 ```bash
-# Проверьте логи
-pm2 logs nio-frontend --lines 50
+# Проверьте, что Next.js отвечает на порту 3000
+curl http://localhost:3000
 
-# Перезапустите
+# Если не работает, проверьте логи
+pm2 logs nio-frontend --lines 50
+```
+
+### Шаг 3: Проверьте, что порт 3000 прослушивается
+
+```bash
+# Проверьте, что порт 3000 занят процессом Node.js
+netstat -tlnp | grep 3000
+# или
+ss -tlnp | grep 3000
+```
+
+## Исправление
+
+### Вариант 1: Next.js не запущен
+
+```bash
+cd /ssd/www/bigo-mvp/frontend/web
+
+# Проверьте, что папка .next существует
+ls -la .next
+
+# Если папки нет, пересоберите
+rm -rf .next
+npm run build
+
+# Запустите через PM2
+pm2 start ecosystem.config.js
+# или если уже есть процесс
 pm2 restart nio-frontend
 
-# Проверьте статус снова
-pm2 status
+# Проверьте статус
+pm2 status nio-frontend
+pm2 logs nio-frontend --lines 30
 ```
 
-### Шаг 2: Проверьте, что Next.js слушает на порту 3000
+### Вариант 2: Next.js упал с ошибкой
 
 ```bash
-# Проверьте, что порт 3000 слушается
-sudo netstat -tulpn | grep 3000
-# или
-sudo ss -tulpn | grep 3000
+# Проверьте логи на ошибки
+pm2 logs nio-frontend --lines 100
+
+# Если есть ошибки, перезапустите
+pm2 restart nio-frontend
+
+# Если не помогает, пересоберите
+cd /ssd/www/bigo-mvp/frontend/web
+pm2 stop nio-frontend
+rm -rf .next
+npm run build
+pm2 start nio-frontend
 ```
 
-**Должно быть что-то вроде:**
-```
-tcp    LISTEN   0   128   0.0.0.0:3000   0.0.0.0:*   users:(("node",pid=12345,fd=20))
-```
-
-Если порт не слушается, Next.js не запущен.
-
-### Шаг 3: Проверьте доступность Next.js локально
-
-```bash
-# Попробуйте подключиться к Next.js локально
-curl http://localhost:3000
-```
-
-**Должен вернуться HTML без ошибок.**
-
-Если не работает:
-```bash
-# Проверьте логи PM2
-pm2 logs nio-frontend --lines 50
-
-# Проверьте, что приложение собрано
-ls -la /ssd/www/bigo-mvp/frontend/web/.next/
-```
-
-### Шаг 4: Проверьте конфигурацию Apache
+### Вариант 3: Проблема с конфигурацией Apache
 
 ```bash
 # Проверьте конфигурацию Apache
 sudo apache2ctl configtest
 
 # Проверьте, что прокси настроен правильно
-sudo cat /etc/apache2/sites-available/bigo-frontend.conf | grep -E "ProxyPass|localhost:3000"
+sudo cat /etc/apache2/sites-available/bigo-frontend.conf | grep -A 5 ProxyPass
+
+# Должно быть:
+# ProxyPass /_next/static http://localhost:3000/_next/static
+# ProxyPass / http://localhost:3000/
 ```
 
-**Должно быть:**
-```apache
-ProxyPass / http://localhost:3000/
-ProxyPassReverse / http://localhost:3000/
-```
-
-### Шаг 5: Проверьте логи Apache
+### Вариант 4: Проблема с портом или firewall
 
 ```bash
-# Проверьте логи ошибок Apache
-sudo tail -f /var/log/apache2/bigo-frontend-error.log
+# Проверьте, что порт 3000 открыт
+sudo netstat -tlnp | grep 3000
+
+# Проверьте firewall (если используется)
+sudo ufw status
 # или
-sudo tail -f /var/log/apache2/error.log
+sudo iptables -L -n | grep 3000
 ```
 
-Ищите ошибки типа:
-- `Connection refused`
-- `No route to host`
-- `Connection timed out`
-
-## Решения
-
-### Решение 1: Перезапустите Next.js через PM2
+## Полное перезапуск (если ничего не помогло)
 
 ```bash
-# Остановите
-pm2 stop nio-frontend
-
-# Запустите снова
-pm2 start nio-frontend
-
-# Проверьте статус
-pm2 status
-
-# Проверьте логи
-pm2 logs nio-frontend --lines 30
-```
-
-### Решение 2: Пересоберите Next.js
-
-```bash
+# 1. Остановите frontend
 cd /ssd/www/bigo-mvp/frontend/web
-
-# Остановите PM2
 pm2 stop nio-frontend
 
-# Удалите старую сборку
+# 2. Удалите старую сборку
 rm -rf .next
 
-# Пересоберите
+# 3. Пересоберите
 npm run build
 
-# Запустите снова
-pm2 restart nio-frontend
-
-# Проверьте статус
-pm2 status
-```
-
-### Решение 3: Проверьте переменные окружения
-
-```bash
-# Проверьте .env.local
-cat /ssd/www/bigo-mvp/frontend/web/.env.local
-
-# Убедитесь, что все необходимые переменные установлены
-```
-
-### Решение 4: Проверьте, что порт 3000 не занят другим процессом
-
-```bash
-# Проверьте, что порт 3000 свободен
-sudo lsof -i :3000
-# или
-sudo netstat -tulpn | grep 3000
-
-# Если порт занят другим процессом, остановите его или измените порт в PM2
-```
-
-### Решение 5: Перезапустите Apache
-
-```bash
-# Проверьте конфигурацию
-sudo apache2ctl configtest
-
-# Если OK, перезагрузите Apache
-sudo systemctl reload apache2
-# или
-sudo service apache2 reload
-```
-
-### Решение 6: Полная переустановка PM2 процесса
-
-```bash
-# Удалите процесс из PM2
+# 4. Запустите через PM2
+pm2 start ecosystem.config.js
+# или если используете ecosystem.config.js
 pm2 delete nio-frontend
-
-# Перейдите в директорию фронтенда
-cd /ssd/www/bigo-mvp/frontend/web
-
-# Проверьте ecosystem.config.js
-cat ecosystem.config.js
-
-# Запустите снова
 pm2 start ecosystem.config.js
 
-# Сохраните конфигурацию PM2
-pm2 save
+# 5. Проверьте статус
+pm2 status nio-frontend
 
-# Проверьте статус
-pm2 status
-```
-
-## Быстрое исправление (все в одном)
-
-```bash
-# 1. Проверьте статус PM2
-pm2 status
-
-# 2. Если не работает, перезапустите
-pm2 restart nio-frontend
-
-# 3. Проверьте порт
-sudo netstat -tulpn | grep 3000
-
-# 4. Проверьте локально
+# 6. Проверьте, что работает локально
 curl http://localhost:3000
-
-# 5. Если не работает, пересоберите
-cd /ssd/www/bigo-mvp/frontend/web
-pm2 stop nio-frontend
-rm -rf .next
-npm run build
-pm2 restart nio-frontend
-
-# 6. Проверьте логи
-pm2 logs nio-frontend --lines 30
 
 # 7. Перезагрузите Apache
 sudo systemctl reload apache2
+
+# 8. Проверьте логи Apache
+sudo tail -f /var/log/apache2/bigo-frontend-error.log
+```
+
+## Проверка конфигурации PM2
+
+```bash
+# Проверьте конфигурацию PM2 для frontend
+cd /ssd/www/bigo-mvp/frontend/web
+cat ecosystem.config.js
+
+# Должно быть что-то вроде:
+# {
+#   name: 'nio-frontend',
+#   script: 'npm',
+#   args: 'start',
+#   cwd: '/ssd/www/bigo-mvp/frontend/web',
+#   env: {
+#     PORT: 3000,
+#     ...
+#   }
+# }
+```
+
+## Проверка логов
+
+```bash
+# Логи PM2 frontend
+pm2 logs nio-frontend --lines 100
+
+# Логи Apache ошибок
+sudo tail -f /var/log/apache2/bigo-frontend-error.log
+
+# Логи Apache доступа
+sudo tail -f /var/log/apache2/bigo-frontend-access.log
+```
+
+## Типичные ошибки и решения
+
+### Ошибка: "Cannot find module"
+```bash
+cd /ssd/www/bigo-mvp/frontend/web
+npm install
+npm run build
+pm2 restart nio-frontend
+```
+
+### Ошибка: "Port 3000 is already in use"
+```bash
+# Найдите процесс, использующий порт 3000
+sudo lsof -i :3000
+# или
+sudo netstat -tlnp | grep 3000
+
+# Убейте процесс или используйте другой порт
+# Или перезапустите PM2
+pm2 restart nio-frontend
+```
+
+### Ошибка: "EADDRINUSE: address already in use"
+```bash
+# Остановите все процессы PM2
+pm2 stop all
+
+# Убейте процессы на порту 3000
+sudo fuser -k 3000/tcp
+
+# Запустите заново
+cd /ssd/www/bigo-mvp/frontend/web
+pm2 start ecosystem.config.js
+```
+
+## Все команды одной строкой (полный перезапуск)
+
+```bash
+cd /ssd/www/bigo-mvp/frontend/web && pm2 stop nio-frontend && rm -rf .next && npm run build && pm2 start ecosystem.config.js && sleep 5 && curl http://localhost:3000 && pm2 status nio-frontend && sudo systemctl reload apache2
 ```
 
 ## Проверка после исправления
 
-1. **Проверьте статус PM2:**
-   ```bash
-   pm2 status
-   ```
-   Процесс должен быть `online`.
+```bash
+# 1. Проверьте статус PM2
+pm2 status nio-frontend
 
-2. **Проверьте порт:**
-   ```bash
-   sudo netstat -tulpn | grep 3000
-   ```
-   Порт должен слушаться.
+# 2. Проверьте локальный доступ
+curl http://localhost:3000
 
-3. **Проверьте локально:**
-   ```bash
-   curl http://localhost:3000
-   ```
-   Должен вернуться HTML.
+# 3. Проверьте через браузер
+# Откройте https://bigo.1tlt.ru
 
-4. **Проверьте через браузер:**
-   Откройте `https://bigo.1tlt.ru` - сайт должен загружаться без ошибок 503.
+# 4. Проверьте логи на ошибки
+pm2 logs nio-frontend --lines 20
+```
 
 ## Если проблема сохраняется
 
-1. **Проверьте логи PM2 в реальном времени:**
+1. **Проверьте, что Next.js действительно запущен:**
    ```bash
-   pm2 logs nio-frontend
+   ps aux | grep node
    ```
 
-2. **Проверьте логи Apache в реальном времени:**
+2. **Проверьте, что порт 3000 прослушивается:**
    ```bash
-   sudo tail -f /var/log/apache2/bigo-frontend-error.log
+   netstat -tlnp | grep 3000
    ```
 
-3. **Проверьте системные логи:**
+3. **Проверьте конфигурацию Apache:**
    ```bash
-   sudo journalctl -u coturn -f
-   sudo journalctl -xe
+   sudo apache2ctl -S
    ```
 
-4. **Проверьте место на диске:**
+4. **Проверьте, что модули Apache включены:**
    ```bash
-   df -h
+   sudo a2enmod proxy
+   sudo a2enmod proxy_http
+   sudo systemctl reload apache2
    ```
 
-5. **Проверьте память:**
+5. **Проверьте логи Apache на детали ошибки:**
    ```bash
-   free -h
+   sudo tail -50 /var/log/apache2/bigo-frontend-error.log
    ```
-
-## Готово!
-
-После выполнения всех шагов ошибка 503 должна исчезнуть, и сайт должен работать нормально.
-
-
-
