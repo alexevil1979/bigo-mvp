@@ -212,10 +212,12 @@ export default function StreamCard({ stream }) {
             }
             
             // Продолжаем рисовать если canvas активен и есть srcObject
-            if (useCanvas && canvasRef.current && videoRef.current && videoRef.current.srcObject) {
+            // ВАЖНО: проверяем canvasRef и videoRef напрямую, не полагаемся на useCanvas state
+            // (useCanvas обновляется асинхронно, поэтому может быть false даже после setUseCanvas(true))
+            if (canvasRef.current && videoRef.current && videoRef.current.srcObject) {
               animationFrameRef.current = requestAnimationFrame(drawFrame);
             } else {
-              console.log('Preview: canvas остановлен - useCanvas:', useCanvas, 'hasCanvas:', !!canvasRef.current, 'hasVideo:', !!videoRef.current, 'hasSrcObject:', !!videoRef.current?.srcObject);
+              console.log('Preview: canvas остановлен - hasCanvas:', !!canvasRef.current, 'hasVideo:', !!videoRef.current, 'hasSrcObject:', !!videoRef.current?.srcObject);
               if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
                 animationFrameRef.current = null;
