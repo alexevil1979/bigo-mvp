@@ -85,11 +85,18 @@ export default function StreamCard({ stream }) {
               if (isMobile && canvasRef.current) {
                 // Пробуем использовать canvas для отображения на мобильных
                 console.log('Preview: мобильное устройство - запускаем canvas сразу при получении трека');
+                // Устанавливаем useCanvas и запускаем canvas
                 setUseCanvas(true);
+                // Используем более длинный таймаут, чтобы дать время state обновиться
                 setTimeout(() => {
-                  console.log('Preview: вызываем startCanvasCapture через setTimeout');
-                  startCanvasCapture();
-                }, 200);
+                  console.log('Preview: вызываем startCanvasCapture через setTimeout, useCanvas должен быть true');
+                  // Проверяем, что canvas все еще нужен
+                  if (canvasRef.current && videoRef.current && videoRef.current.srcObject) {
+                    startCanvasCapture();
+                  } else {
+                    console.log('Preview: canvas или video недоступны при запуске');
+                  }
+                }, 300);
               }
               
               // Устанавливаем isConnected сразу при наличии потока
