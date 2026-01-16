@@ -280,16 +280,66 @@ exports.uploadScreenshot = async (req, res) => {
     }
 
     console.log('[Screenshot Upload] Поиск стрима:', streamId, 'для пользователя:', req.user._id);
+    console.log('[Screenshot Upload] Типы:', {
+      streamIdType: typeof streamId,
+      userIdType: typeof req.user._id,
+      userIdString: req.user._id.toString()
+    });
 
     // Проверяем, что стрим существует и принадлежит пользователю
-    const stream = await Stream.findOne({
+    // Пробуем найти стрим разными способами (на случай проблем с типами ID)
+    let stream = await Stream.findOne({
       _id: streamId,
       streamer: req.user._id,
       status: 'live'
     });
 
+    // Если не нашли, пробуем найти по строковому ID
+    if (!stream) {
+      console.log('[Screenshot Upload] Попытка найти стрим по строковому ID');
+      stream = await Stream.findOne({
+        _id: streamId.toString(),
+        streamer: req.user._id.toString(),
+        status: 'live'
+      });
+    }
+
+    // Если все еще не нашли, пробуем найти только по ID стрима (без проверки streamer)
+    if (!stream) {
+      console.log('[Screenshot Upload] Попытка найти стрим только по ID');
+      stream = await Stream.findOne({
+        _id: streamId,
+        status: 'live'
+      });
+      
+      if (stream) {
+        // Проверяем, что стрим принадлежит пользователю
+        const streamerId = stream.streamer.toString();
+        const userId = req.user._id.toString();
+        if (streamerId !== userId) {
+          console.error('[Screenshot Upload] Стрим найден, но не принадлежит пользователю:', {
+            streamerId,
+            userId
+          });
+          stream = null;
+        } else {
+          console.log('[Screenshot Upload] Стрим найден после проверки владельца');
+        }
+      }
+    }
+
     if (!stream) {
       console.error('[Screenshot Upload] Ошибка: стрим не найден или не принадлежит пользователю');
+      console.error('[Screenshot Upload] Попробуем найти все активные стримы пользователя:');
+      const userStreams = await Stream.find({
+        streamer: req.user._id,
+        status: 'live'
+      });
+      console.error('[Screenshot Upload] Активные стримы пользователя:', userStreams.map(s => ({
+        id: s._id.toString(),
+        title: s.title
+      })));
+      
       // Удаляем загруженный файл, если стрим не найден
       if (req.file.path) {
         fs.unlinkSync(req.file.path);
@@ -299,14 +349,31 @@ exports.uploadScreenshot = async (req, res) => {
 
     console.log('[Screenshot Upload] Стрим найден:', stream._id);
 
+    // Переименовываем файл с правильным streamId
+    const correctFilename = `${stream._id}-${Date.now()}.jpg`;
+    const correctPath = path.join(path.dirname(req.file.path), correctFilename);
+    
+    try {
+      // Переименовываем файл
+      fs.renameSync(req.file.path, correctPath);
+      console.log('[Screenshot Upload] Файл переименован:', req.file.path, '->', correctPath);
+    } catch (renameError) {
+      console.error('[Screenshot Upload] Ошибка переименования файла:', renameError);
+      // Удаляем временный файл
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(500).json({ error: 'Ошибка при сохранении файла' });
+    }
+
     // Сохраняем путь к скриншоту
-    const screenshotPath = `/uploads/streams/screenshots/${req.file.filename}`;
+    const screenshotPath = `/uploads/streams/screenshots/${correctFilename}`;
     console.log('[Screenshot Upload] Путь к скриншоту:', screenshotPath);
-    console.log('[Screenshot Upload] Полный путь на диске:', req.file.path);
+    console.log('[Screenshot Upload] Полный путь на диске:', correctPath);
     
     // Проверяем, что файл действительно существует
-    if (!fs.existsSync(req.file.path)) {
-      console.error('[Screenshot Upload] Ошибка: файл не существует по пути:', req.file.path);
+    if (!fs.existsSync(correctPath)) {
+      console.error('[Screenshot Upload] Ошибка: файл не существует по пути:', correctPath);
       return res.status(500).json({ error: 'Файл не был сохранен на диск' });
     }
 

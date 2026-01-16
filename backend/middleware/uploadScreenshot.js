@@ -18,10 +18,12 @@ const storage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     // Имя файла: streamId-timestamp.jpg
-    const streamId = req.body.streamId || req.params.streamId || 'unknown';
+    // ВАЖНО: req.body может быть еще не распарсен на этом этапе
+    // Используем временное имя, которое будет переименовано после сохранения
     const timestamp = Date.now();
-    const filename = `${streamId}-${timestamp}.jpg`;
-    console.log('[Screenshot] Имя файла:', filename, 'для streamId:', streamId);
+    const randomId = Math.random().toString(36).substring(7);
+    const filename = `temp-${timestamp}-${randomId}.jpg`;
+    console.log('[Screenshot] Временное имя файла:', filename);
     cb(null, filename);
   }
 });
