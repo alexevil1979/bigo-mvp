@@ -54,6 +54,7 @@ export default function StreamCard({ stream }) {
 
         // Обработка входящего потока
         pc.ontrack = (event) => {
+          console.log('Preview: получен трек от стримера:', event);
           if (videoRef.current) {
             let mediaStream = null;
             if (event.streams && event.streams[0]) {
@@ -67,15 +68,24 @@ export default function StreamCard({ stream }) {
             if (mediaStream && videoRef.current) {
               videoRef.current.muted = true;
               videoRef.current.playsInline = true;
+              
+              // Для мобильных устройств важно установить isConnected сразу при наличии потока
+              // даже если автоплей заблокирован
+              if (videoRef.current.srcObject) {
+                setIsConnected(true);
+              }
+              
               // Пытаемся запустить воспроизведение
               const playPromise = videoRef.current.play();
               if (playPromise !== undefined) {
                 playPromise
                   .then(() => {
+                    console.log('Preview: видео воспроизводится');
                     setIsConnected(true);
                   })
-                  .catch(() => {
-                    // Автоплей заблокирован, но видео загружено
+                  .catch((err) => {
+                    console.log('Preview: автоплей заблокирован, но видео загружено', err);
+                    // Автоплей заблокирован, но видео загружено - показываем его
                     setIsConnected(true);
                   });
               } else {
@@ -97,10 +107,20 @@ export default function StreamCard({ stream }) {
         
         // Обработка ошибок ICE
         pc.oniceconnectionstatechange = () => {
+          console.log('Preview: ICE connection state:', pc.iceConnectionState);
           if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
             if (videoRef.current && videoRef.current.srcObject) {
               setIsConnected(true);
+              // Пытаемся запустить воспроизведение, если еще не запущено
+              if (videoRef.current.paused) {
+                videoRef.current.play().catch(() => {
+                  // Автоплей заблокирован, но видео загружено
+                  setIsConnected(true);
+                });
+              }
             }
+          } else if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+            setIsConnected(false);
           }
         };
 
@@ -231,10 +251,15 @@ export default function StreamCard({ stream }) {
               backgroundColor: 'transparent',
               opacity: isConnected ? 1 : 0,
               transition: 'opacity 0.3s ease-in-out',
-              zIndex: 2
+              zIndex: 2,
+              // Для мобильных устройств важно, чтобы видео было видно
+              visibility: isConnected ? 'visible' : 'hidden'
             }}
             onLoadedMetadata={() => {
+              console.log('Preview: метаданные загружены');
               if (videoRef.current && videoRef.current.srcObject) {
+                // Для мобильных устройств важно показать видео даже если автоплей заблокирован
+                setIsConnected(true);
                 const playPromise = videoRef.current.play();
                 if (playPromise !== undefined) {
                   playPromise
@@ -242,16 +267,17 @@ export default function StreamCard({ stream }) {
                       setIsConnected(true);
                     })
                     .catch(() => {
-                      // Автоплей заблокирован, но видео загружено
-                      if (videoRef.current && videoRef.current.srcObject) {
-                        setIsConnected(true);
-                      }
+                      // Автоплей заблокирован, но видео загружено - показываем его
+                      setIsConnected(true);
                     });
                 }
               }
             }}
             onCanPlay={() => {
+              console.log('Preview: видео готово к воспроизведению');
               if (videoRef.current && videoRef.current.srcObject) {
+                // Критически важно для мобильных: показываем видео при готовности
+                setIsConnected(true);
                 const playPromise = videoRef.current.play();
                 if (playPromise !== undefined) {
                   playPromise
@@ -259,10 +285,8 @@ export default function StreamCard({ stream }) {
                       setIsConnected(true);
                     })
                     .catch(() => {
-                      // Автоплей заблокирован, но видео загружено
-                      if (videoRef.current && videoRef.current.srcObject) {
-                        setIsConnected(true);
-                      }
+                      // Автоплей заблокирован, но видео загружено - показываем его
+                      setIsConnected(true);
                     });
                 } else {
                   setIsConnected(true);
@@ -270,10 +294,18 @@ export default function StreamCard({ stream }) {
               }
             }}
             onPlay={() => {
+              console.log('Preview: видео воспроизводится');
               setIsConnected(true);
             }}
             onPlaying={() => {
+              console.log('Preview: видео играет');
               setIsConnected(true);
+            }}
+            onLoadedData={() => {
+              // Дополнительная проверка для мобильных устройств
+              if (videoRef.current && videoRef.current.srcObject) {
+                setIsConnected(true);
+              }
             }}
             onError={(e) => {
               console.error('Превью: ошибка видео элемента:', e);
