@@ -463,14 +463,12 @@ export default function StreamBroadcaster({ stream, user }) {
               />
             )}
           </div>
-          <div className="stream-content-below-player">
-            <div className="stream-welcome">
-              <p>Наслаждайся прямыми эфирами</p>
-            </div>
-            <div className="stream-rules-warning">
+          <div className="stream-welcome">
+            <p>Наслаждайся прямыми эфирами</p>
+          </div>
+          <div className="stream-rules-warning">
             <p><strong>Мы постоянно следим за качеством трансляций.</strong></p>
             <p>Запрещено: курение, употребление алкоголя, использование ненормативной лексики, обнаженность, нарушение авторских прав, демонстрация детской порнографии или жестокого обращения с детьми. Такие действия приведут к блокировке аккаунта.</p>
-            </div>
           </div>
         </div>
       </div>
@@ -675,6 +673,18 @@ export default function StreamBroadcaster({ stream, user }) {
         .stream-video-section {
           display: flex;
           flex-direction: column;
+          width: 100vw;
+          position: relative;
+          left: 50%;
+          right: 50%;
+          margin-left: -50vw;
+          margin-right: -50vw;
+          background-image: url('/bg1.png');
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
+          padding: 20px;
+          padding-top: 0;
         }
 
         .video-wrapper {
@@ -750,9 +760,6 @@ export default function StreamBroadcaster({ stream, user }) {
           padding: 15px;
           border-radius: 8px;
           margin-top: 15px;
-          max-width: 1400px;
-          margin-left: auto;
-          margin-right: auto;
         }
 
         .stream-rules-warning p {
