@@ -148,6 +148,67 @@ export default function StreamCard({ stream }) {
           }
         };
         
+        // Функция для захвата превью кадра из видео
+        const capturePreviewFrame = () => {
+          if (!videoRef.current || !previewCanvasRef.current) {
+            console.log('Preview: capturePreviewFrame - нет video или previewCanvas');
+            return;
+          }
+          
+          const video = videoRef.current;
+          const canvas = previewCanvasRef.current;
+          const ctx = canvas.getContext('2d');
+          
+          console.log('Preview: захват превью кадра, video state:', {
+            readyState: video.readyState,
+            videoWidth: video.videoWidth,
+            videoHeight: video.videoHeight,
+            paused: video.paused,
+            hasSrcObject: !!video.srcObject
+          });
+          
+          const drawPreview = () => {
+            if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+              // Устанавливаем размеры canvas
+              if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                console.log('Preview: canvas размеры установлены:', canvas.width, 'x', canvas.height);
+              }
+              // Рисуем текущий кадр
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              console.log('Preview: кадр захвачен и отрисован');
+              
+              // Останавливаем после первого кадра, если видео не играет
+              if (video.paused && previewAnimationFrameRef.current) {
+                cancelAnimationFrame(previewAnimationFrameRef.current);
+                previewAnimationFrameRef.current = null;
+              }
+            } else {
+              console.log('Preview: видео еще не готово для захвата, readyState:', video.readyState);
+            }
+            
+            // Продолжаем только если видео загружено и не играет
+            if (video.srcObject && video.paused && showPreview && !isPlaying) {
+              previewAnimationFrameRef.current = requestAnimationFrame(drawPreview);
+            } else {
+              if (previewAnimationFrameRef.current) {
+                cancelAnimationFrame(previewAnimationFrameRef.current);
+                previewAnimationFrameRef.current = null;
+              }
+            }
+          };
+          
+          // Останавливаем предыдущую анимацию если есть
+          if (previewAnimationFrameRef.current) {
+            cancelAnimationFrame(previewAnimationFrameRef.current);
+            previewAnimationFrameRef.current = null;
+          }
+          
+          // Запускаем захват кадра
+          drawPreview();
+        };
+        
         // Функция для захвата кадров в canvas
         const startCanvasCapture = () => {
           console.log('Preview: startCanvasCapture вызвана');
