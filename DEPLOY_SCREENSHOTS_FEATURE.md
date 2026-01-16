@@ -274,6 +274,7 @@ git push origin master
 Затем перезапустить сервисы:
 
 ```bash
-pm2 restart nio-backend
+pm2 restart bigo-backend
 pm2 restart nio-frontend
+pm2 restart nio-admin
 ```
