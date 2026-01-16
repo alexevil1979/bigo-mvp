@@ -658,6 +658,19 @@ export default function StreamCard({ stream }) {
           <p className="viewer-count">👁️ {stream.viewerCount} зрителей</p>
         </div>
       </div>
+      
+      {/* Дополнительный блок с плеером для мобильных устройств */}
+      {(() => {
+        if (typeof window === 'undefined') return null;
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        return isMobile ? (
+          <div className="stream-mobile-player-wrapper">
+            <div className="stream-mobile-player-container">
+              <StreamPlayer stream={stream} user={null} />
+            </div>
+          </div>
+        ) : null;
+      })()}
     </Link>
   );
 }
