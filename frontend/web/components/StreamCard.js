@@ -89,11 +89,13 @@ export default function StreamCard({ stream }) {
                   .then(() => {
                     console.log('Preview: видео воспроизводится');
                     setIsConnected(true);
+                    setShowLoading(false);
                   })
                   .catch((err) => {
                     console.log('Preview: автоплей заблокирован, но видео загружено', err);
                     // Автоплей заблокирован, но видео загружено - показываем его
                     setIsConnected(true);
+                    setShowLoading(false);
                   });
               } else {
                 setIsConnected(true);
@@ -278,15 +280,18 @@ export default function StreamCard({ stream }) {
               if (videoRef.current && videoRef.current.srcObject) {
                 // Для мобильных устройств важно показать видео даже если автоплей заблокирован
                 setIsConnected(true);
+                setShowLoading(false);
                 const playPromise = videoRef.current.play();
                 if (playPromise !== undefined) {
                   playPromise
                     .then(() => {
                       setIsConnected(true);
+                      setShowLoading(false);
                     })
                     .catch(() => {
                       // Автоплей заблокирован, но видео загружено - показываем его
                       setIsConnected(true);
+                      setShowLoading(false);
                     });
                 }
               }
@@ -314,15 +319,18 @@ export default function StreamCard({ stream }) {
             onPlay={() => {
               console.log('Preview: видео воспроизводится');
               setIsConnected(true);
+              setShowLoading(false);
             }}
             onPlaying={() => {
               console.log('Preview: видео играет');
               setIsConnected(true);
+              setShowLoading(false);
             }}
             onLoadedData={() => {
               // Дополнительная проверка для мобильных устройств
               if (videoRef.current && videoRef.current.srcObject) {
                 setIsConnected(true);
+                setShowLoading(false);
               }
             }}
             onError={(e) => {
