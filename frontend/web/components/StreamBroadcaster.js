@@ -678,29 +678,40 @@ export default function StreamBroadcaster({ stream, user }) {
           display: flex;
           flex-direction: column;
           position: relative;
-          background-image: url('/bg1.png');
-          background-size: cover;
-          background-position: center;
-          background-repeat: no-repeat;
           padding: 20px;
         }
         
-        /* Псевдоэлемент для фона на всю ширину */
+        /* Псевдоэлемент для фона на всю ширину экрана */
         .stream-video-section::before {
           content: '';
-          position: absolute;
+          position: fixed;
           top: 0;
-          left: 50%;
-          right: 50%;
+          left: 0;
           width: 100vw;
-          height: 100%;
-          margin-left: -50vw;
-          margin-right: -50vw;
+          height: 100vh;
           background-image: url('/bg1.png');
           background-size: cover;
           background-position: center;
           background-repeat: no-repeat;
           z-index: -1;
+          pointer-events: none;
+        }
+        
+        /* Альтернативный вариант через абсолютное позиционирование */
+        .stream-video-section::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: calc(-50vw + 50%);
+          right: calc(-50vw + 50%);
+          width: 100vw;
+          height: 100%;
+          background-image: url('/bg1.png');
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
+          z-index: -1;
+          pointer-events: none;
         }
 
         .video-wrapper {
