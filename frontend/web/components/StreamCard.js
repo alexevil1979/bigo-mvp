@@ -112,9 +112,13 @@ export default function StreamCard({ stream }) {
                     // Автоплей заблокирован - используем canvas для отображения
                     setIsConnected(true);
                     setShowLoading(false);
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    console.log('Preview: проверка canvas при ошибке play - isMobile:', isMobile, 'canvasRef.current:', !!canvasRef.current, 'useCanvas:', useCanvas);
                     if (isMobile && canvasRef.current) {
+                      console.log('Preview: запускаем canvas сразу при ошибке play()');
+                      setUseCanvas(true);
+                      // Запускаем canvas сразу, не ждем setTimeout
                       setTimeout(() => {
-                        setUseCanvas(true);
                         startCanvasCapture();
                       }, 100);
                     }
