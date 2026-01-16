@@ -254,8 +254,10 @@ export default function StreamCard({ stream }) {
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             if (isMobile && canvasRef.current && videoRef.current && videoRef.current.srcObject) {
               const videoPlaying = !videoRef.current.paused && videoRef.current.readyState >= 2;
-              console.log('Preview: проверка canvas - isMobile:', isMobile, 'videoPlaying:', videoPlaying, 'useCanvas:', useCanvas);
-              if (!videoPlaying && !useCanvas) {
+              const videoHasMetadata = videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0;
+              console.log('Preview: проверка canvas при failed - isMobile:', isMobile, 'videoPlaying:', videoPlaying, 'videoHasMetadata:', videoHasMetadata, 'useCanvas:', useCanvas);
+              // Запускаем canvas если видео не играет ИЛИ метаданные еще не загружены
+              if ((!videoPlaying || !videoHasMetadata) && !useCanvas) {
                 console.log('Preview: запускаем canvas для мобильных при failed соединении');
                 setTimeout(() => {
                   setUseCanvas(true);
