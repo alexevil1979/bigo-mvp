@@ -98,66 +98,31 @@ npm run dev
 ssh root@ваш_сервер
 ```
 
-### 2. Перейдите в директорию проекта
+### 2. Выполните команды для обновления
 
 ```bash
 cd /ssd/www/bigo-mvp
-```
-
-### 3. Получите последние изменения из git
-
-```bash
 git pull origin master
+cd frontend/web
+rm -rf .next
+npm run build
+pm2 restart nio-frontend
+pm2 status all
 ```
 
-### 4. Установите зависимости (если нужно)
-
-#### Backend
+### 3. Создайте директорию для скриншотов (если еще не создана)
 
 ```bash
-cd backend
-npm install
+cd /ssd/www/bigo-mvp
+mkdir -p backend/uploads/streams/screenshots
+chmod 755 backend/uploads/streams/screenshots
 ```
 
-#### Frontend
-
-```bash
-cd ../frontend/web
-npm install
-```
-
-### 5. Создайте директорию для скриншотов
-
-```bash
-mkdir -p /ssd/www/bigo-mvp/backend/uploads/streams/screenshots
-chmod 755 /ssd/www/bigo-mvp/backend/uploads/streams/screenshots
-```
-
-### 6. Перезапустите backend через PM2
+### 4. Перезапустите backend (если нужно)
 
 ```bash
 cd /ssd/www/bigo-mvp/backend
 pm2 restart nio-backend
-```
-
-Или если используете ecosystem.config.js:
-
-```bash
-pm2 restart ecosystem.config.js --only nio-backend
-```
-
-### 7. Пересоберите и перезапустите frontend
-
-```bash
-cd /ssd/www/bigo-mvp/frontend/web
-npm run build
-pm2 restart nio-frontend
-```
-
-Или если используете ecosystem.config.js:
-
-```bash
-pm2 restart ecosystem.config.js --only nio-frontend
 ```
 
 ### 8. Проверьте логи
