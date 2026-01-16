@@ -5,10 +5,13 @@ import { generateTurnCredentialsSync } from '../lib/turnAuth';
 
 export default function StreamCard({ stream }) {
   const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const socketRef = useRef(null);
   const peerConnectionRef = useRef(null);
+  const animationFrameRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const [showLoading, setShowLoading] = useState(true);
+  const [useCanvas, setUseCanvas] = useState(false);
   const [overlayImage, setOverlayImage] = useState(null);
   const [overlayVideo, setOverlayVideo] = useState(null);
   const [overlayType, setOverlayType] = useState(null);
@@ -75,11 +78,19 @@ export default function StreamCard({ stream }) {
               videoRef.current.muted = true;
               videoRef.current.playsInline = true;
               
-              // Для мобильных устройств важно установить isConnected сразу при наличии потока
-              // даже если автоплей заблокирован
+              // Для мобильных устройств пробуем использовать canvas как fallback
+              const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+              
+              if (isMobile && canvasRef.current) {
+                // Пробуем использовать canvas для отображения на мобильных
+                setUseCanvas(true);
+                startCanvasCapture();
+              }
+              
+              // Устанавливаем isConnected сразу при наличии потока
               if (videoRef.current.srcObject) {
                 setIsConnected(true);
-                setShowLoading(false); // Скрываем загрузку при получении потока
+                setShowLoading(false);
               }
               
               // Пытаемся запустить воспроизведение
@@ -90,12 +101,23 @@ export default function StreamCard({ stream }) {
                     console.log('Preview: видео воспроизводится');
                     setIsConnected(true);
                     setShowLoading(false);
+                    // Если видео играет, не нужен canvas
+                    if (animationFrameRef.current) {
+                      cancelAnimationFrame(animationFrameRef.current);
+                      setUseCanvas(false);
+                    }
                   })
                   .catch((err) => {
-                    console.log('Preview: автоплей заблокирован, но видео загружено', err);
-                    // Автоплей заблокирован, но видео загружено - показываем его
+                    console.log('Preview: автоплей заблокирован, используем canvas', err);
+                    // Автоплей заблокирован - используем canvas для отображения
                     setIsConnected(true);
                     setShowLoading(false);
+                    if (isMobile && canvasRef.current) {
+                      setTimeout(() => {
+                        setUseCanvas(true);
+                        startCanvasCapture();
+                      }, 100);
+                    }
                   });
               } else {
                 setIsConnected(true);
@@ -103,6 +125,31 @@ export default function StreamCard({ stream }) {
               }
             }
           }
+        };
+        
+        // Функция для захвата кадров в canvas
+        const startCanvasCapture = () => {
+          if (!videoRef.current || !canvasRef.current) return;
+          
+          const video = videoRef.current;
+          const canvas = canvasRef.current;
+          const ctx = canvas.getContext('2d');
+          
+          const drawFrame = () => {
+            if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              setIsConnected(true);
+              setShowLoading(false);
+            }
+            
+            if (useCanvas || video.paused) {
+              animationFrameRef.current = requestAnimationFrame(drawFrame);
+            }
+          };
+          
+          drawFrame();
         };
         
         // Отслеживание состояния соединения
@@ -225,6 +272,9 @@ export default function StreamCard({ stream }) {
 
     return () => {
       clearTimeout(loadingTimeout);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
       if (peerConnectionRef.current) {
         peerConnectionRef.current.close();
       }
@@ -253,6 +303,27 @@ export default function StreamCard({ stream }) {
               zIndex: 1
             }}
           />
+          {/* Canvas для мобильных устройств (fallback) */}
+          {useCanvas && (
+            <canvas
+              ref={canvasRef}
+              className="stream-preview-canvas"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+                backgroundColor: 'transparent',
+                opacity: isConnected ? 1 : 0,
+                transition: 'opacity 0.3s ease-in-out',
+                zIndex: 2,
+                visibility: isConnected ? 'visible' : 'hidden'
+              }}
+            />
+          )}
           {/* Видео превью */}
           <video
             ref={videoRef}
@@ -267,7 +338,7 @@ export default function StreamCard({ stream }) {
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              display: 'block',
+              display: useCanvas ? 'none' : 'block',
               backgroundColor: 'transparent',
               opacity: isConnected ? 1 : 0,
               transition: 'opacity 0.3s ease-in-out',
@@ -331,6 +402,28 @@ export default function StreamCard({ stream }) {
               if (videoRef.current && videoRef.current.srcObject) {
                 setIsConnected(true);
                 setShowLoading(false);
+                
+                // Для мобильных устройств пробуем canvas если видео не играет
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if (isMobile && videoRef.current.paused && canvasRef.current) {
+                  setTimeout(() => {
+                    setUseCanvas(true);
+                    startCanvasCapture();
+                  }, 100);
+                }
+              }
+            }}
+            
+            // Дополнительная проверка через requestAnimationFrame для мобильных
+            onTimeUpdate={() => {
+              if (videoRef.current && videoRef.current.srcObject && videoRef.current.currentTime > 0) {
+                setIsConnected(true);
+                setShowLoading(false);
+                // Если видео играет, отключаем canvas
+                if (useCanvas && animationFrameRef.current) {
+                  cancelAnimationFrame(animationFrameRef.current);
+                  setUseCanvas(false);
+                }
               }
             }}
             onError={(e) => {
