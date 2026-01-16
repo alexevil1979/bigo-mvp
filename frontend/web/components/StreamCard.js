@@ -313,6 +313,68 @@ export default function StreamCard({ stream }) {
     };
   }, [stream]);
 
+  // Отдельный useEffect для автоматического воспроизведения (как в StreamPlayer.js)
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+
+    const handleLoadedMetadata = () => {
+      if (videoElement.srcObject && videoElement.paused) {
+        videoElement.play().catch(err => {
+          console.error('Preview: ошибка автоматического воспроизведения при загрузке:', err);
+          // Для мобильных пробуем canvas
+          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          if (isMobile && canvasRef.current && !useCanvas) {
+            setTimeout(() => {
+              setUseCanvas(true);
+              if (startCanvasCapture) {
+                startCanvasCapture();
+              }
+            }, 200);
+          }
+        });
+      }
+    };
+
+    const handleCanPlay = () => {
+      if (videoElement.srcObject && videoElement.paused) {
+        videoElement.play().catch(err => {
+          console.error('Preview: ошибка автоматического воспроизведения:', err);
+          // Для мобильных пробуем canvas
+          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          if (isMobile && canvasRef.current && !useCanvas) {
+            setTimeout(() => {
+              setUseCanvas(true);
+              if (startCanvasCapture) {
+                startCanvasCapture();
+              }
+            }, 200);
+          }
+        });
+      }
+    };
+
+    const handlePlay = () => {
+      setIsConnected(true);
+      setShowLoading(false);
+      // Если видео играет, отключаем canvas
+      if (useCanvas && animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        setUseCanvas(false);
+      }
+    };
+
+    videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+    videoElement.addEventListener('canplay', handleCanPlay);
+    videoElement.addEventListener('play', handlePlay);
+
+    return () => {
+      videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      videoElement.removeEventListener('canplay', handleCanPlay);
+      videoElement.removeEventListener('play', handlePlay);
+    };
+  }, [isConnected, useCanvas]);
+
   return (
     <Link href={`/stream/${stream._id}`}>
       <div className="stream-card">
