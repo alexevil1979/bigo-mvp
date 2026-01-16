@@ -165,8 +165,20 @@ export default function StreamCard({ stream }) {
             setIsConnected(true);
             setShowLoading(false);
           } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-            // Не сбрасываем isConnected, если видео уже загружено
-            if (!videoRef.current || !videoRef.current.srcObject) {
+            // ВАЖНО: Если трек уже получен и видео загружено, показываем его даже при failed
+            if (videoRef.current && videoRef.current.srcObject) {
+              console.log('Preview: соединение failed, но видео уже загружено - показываем его');
+              setIsConnected(true);
+              setShowLoading(false);
+              // Пробуем использовать canvas для мобильных
+              const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+              if (isMobile && canvasRef.current) {
+                setTimeout(() => {
+                  setUseCanvas(true);
+                  startCanvasCapture();
+                }, 100);
+              }
+            } else {
               setIsConnected(false);
             }
           }
@@ -189,8 +201,20 @@ export default function StreamCard({ stream }) {
               }
             }
           } else if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
-            // Не сбрасываем isConnected, если видео уже загружено
-            if (!videoRef.current || !videoRef.current.srcObject) {
+            // ВАЖНО: Если трек уже получен, показываем видео даже при failed
+            if (videoRef.current && videoRef.current.srcObject) {
+              console.log('Preview: ICE failed, но видео уже загружено - показываем его');
+              setIsConnected(true);
+              setShowLoading(false);
+              // Пробуем использовать canvas для мобильных
+              const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+              if (isMobile && canvasRef.current) {
+                setTimeout(() => {
+                  setUseCanvas(true);
+                  startCanvasCapture();
+                }, 100);
+              }
+            } else {
               setIsConnected(false);
             }
           }
