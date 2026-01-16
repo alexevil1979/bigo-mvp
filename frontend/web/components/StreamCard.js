@@ -167,18 +167,20 @@ export default function StreamCard({ stream }) {
           } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
             // ВАЖНО: Если трек уже получен и видео загружено, показываем его даже при failed
             if (videoRef.current && videoRef.current.srcObject) {
-              console.log('Preview: соединение failed, но видео уже загружено - показываем его');
+              console.log('Preview: соединение failed/disconnected, но видео уже загружено - показываем его');
               setIsConnected(true);
               setShowLoading(false);
-              // Пробуем использовать canvas для мобильных
+              // Пробуем использовать canvas для мобильных, если видео не играет
               const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-              if (isMobile && canvasRef.current) {
+              if (isMobile && canvasRef.current && (videoRef.current.paused || !videoRef.current.playing)) {
+                console.log('Preview: запускаем canvas для мобильных при failed соединении');
                 setTimeout(() => {
                   setUseCanvas(true);
                   startCanvasCapture();
-                }, 100);
+                }, 200);
               }
             } else {
+              console.log('Preview: соединение failed и нет видео - скрываем');
               setIsConnected(false);
             }
           }
@@ -203,18 +205,20 @@ export default function StreamCard({ stream }) {
           } else if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
             // ВАЖНО: Если трек уже получен, показываем видео даже при failed
             if (videoRef.current && videoRef.current.srcObject) {
-              console.log('Preview: ICE failed, но видео уже загружено - показываем его');
+              console.log('Preview: ICE failed/disconnected, но видео уже загружено - показываем его');
               setIsConnected(true);
               setShowLoading(false);
-              // Пробуем использовать canvas для мобильных
+              // Пробуем использовать canvas для мобильных, если видео не играет
               const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-              if (isMobile && canvasRef.current) {
+              if (isMobile && canvasRef.current && (videoRef.current.paused || !videoRef.current.playing)) {
+                console.log('Preview: запускаем canvas для мобильных при ICE failed');
                 setTimeout(() => {
                   setUseCanvas(true);
                   startCanvasCapture();
-                }, 100);
+                }, 200);
               }
             } else {
+              console.log('Preview: ICE failed и нет видео - скрываем');
               setIsConnected(false);
             }
           }
@@ -368,13 +372,13 @@ export default function StreamCard({ stream }) {
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              display: useCanvas ? 'none' : 'block',
+              display: useCanvas ? 'none' : (videoRef.current?.srcObject ? 'block' : 'none'),
               backgroundColor: 'transparent',
-              opacity: isConnected ? 1 : 0,
+              opacity: (isConnected || videoRef.current?.srcObject) ? 1 : 0,
               transition: 'opacity 0.3s ease-in-out',
               zIndex: 2,
-              // Для мобильных устройств важно, чтобы видео было видно
-              visibility: isConnected ? 'visible' : 'hidden'
+              // Для мобильных устройств важно, чтобы видео было видно даже при failed соединении
+              visibility: (isConnected || videoRef.current?.srcObject) ? 'visible' : 'hidden'
             }}
             onLoadedMetadata={() => {
               console.log('Preview: метаданные загружены');
