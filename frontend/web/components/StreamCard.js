@@ -80,11 +80,16 @@ export default function StreamCard({ stream }) {
               
               // Для мобильных устройств пробуем использовать canvas как fallback
               const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+              console.log('Preview: проверка мобильного устройства - isMobile:', isMobile, 'canvasRef.current:', !!canvasRef.current);
               
               if (isMobile && canvasRef.current) {
                 // Пробуем использовать canvas для отображения на мобильных
+                console.log('Preview: мобильное устройство - запускаем canvas сразу при получении трека');
                 setUseCanvas(true);
-                startCanvasCapture();
+                setTimeout(() => {
+                  console.log('Preview: вызываем startCanvasCapture через setTimeout');
+                  startCanvasCapture();
+                }, 200);
               }
               
               // Устанавливаем isConnected сразу при наличии потока
