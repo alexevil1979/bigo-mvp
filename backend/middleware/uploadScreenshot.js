@@ -3,7 +3,8 @@ const path = require('path');
 const fs = require('fs');
 
 // Создаем директорию для скриншотов стримов, если её нет
-const screenshotsDir = path.join(__dirname, '../../uploads/streams/screenshots');
+// __dirname = backend/middleware/, поэтому ../uploads = backend/uploads
+const screenshotsDir = path.join(__dirname, '../uploads/streams/screenshots');
 if (!fs.existsSync(screenshotsDir)) {
   fs.mkdirSync(screenshotsDir, { recursive: true });
   console.log('[Screenshot] Директория создана:', screenshotsDir);
