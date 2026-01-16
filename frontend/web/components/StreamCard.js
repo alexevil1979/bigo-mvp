@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import io from 'socket.io-client';
 import { generateTurnCredentialsSync } from '../lib/turnAuth';
+import StreamPlayer from './StreamPlayer';
 
 export default function StreamCard({ stream }) {
   const videoRef = useRef(null);
