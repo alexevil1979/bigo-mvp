@@ -8,6 +8,7 @@ export default function StreamCard({ stream }) {
   const socketRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [showLoading, setShowLoading] = useState(true);
   const [overlayImage, setOverlayImage] = useState(null);
   const [overlayVideo, setOverlayVideo] = useState(null);
   const [overlayType, setOverlayType] = useState(null);
@@ -20,6 +21,11 @@ export default function StreamCard({ stream }) {
     socketRef.current = socket;
     
     const userId = `preview-${stream._id}-${Date.now()}`;
+    
+    // Таймаут для скрытия загрузки через 5 секунд, даже если соединение не установлено
+    const loadingTimeout = setTimeout(() => {
+      setShowLoading(false);
+    }, 5000);
 
     const setupPreview = async () => {
       try {
@@ -73,6 +79,7 @@ export default function StreamCard({ stream }) {
               // даже если автоплей заблокирован
               if (videoRef.current.srcObject) {
                 setIsConnected(true);
+                setShowLoading(false); // Скрываем загрузку при получении потока
               }
               
               // Пытаемся запустить воспроизведение
@@ -90,6 +97,7 @@ export default function StreamCard({ stream }) {
                   });
               } else {
                 setIsConnected(true);
+                setShowLoading(false);
               }
             }
           }
@@ -100,8 +108,12 @@ export default function StreamCard({ stream }) {
           console.log('Preview WebRTC connection state:', pc.connectionState);
           if (pc.connectionState === 'connected' && videoRef.current && videoRef.current.srcObject) {
             setIsConnected(true);
+            setShowLoading(false);
           } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-            setIsConnected(false);
+            // Не сбрасываем isConnected, если видео уже загружено
+            if (!videoRef.current || !videoRef.current.srcObject) {
+              setIsConnected(false);
+            }
           }
         };
         
@@ -111,16 +123,21 @@ export default function StreamCard({ stream }) {
           if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
             if (videoRef.current && videoRef.current.srcObject) {
               setIsConnected(true);
+              setShowLoading(false);
               // Пытаемся запустить воспроизведение, если еще не запущено
               if (videoRef.current.paused) {
                 videoRef.current.play().catch(() => {
                   // Автоплей заблокирован, но видео загружено
                   setIsConnected(true);
+                  setShowLoading(false);
                 });
               }
             }
           } else if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
-            setIsConnected(false);
+            // Не сбрасываем isConnected, если видео уже загружено
+            if (!videoRef.current || !videoRef.current.srcObject) {
+              setIsConnected(false);
+            }
           }
         };
 
@@ -205,6 +222,7 @@ export default function StreamCard({ stream }) {
     setupPreview();
 
     return () => {
+      clearTimeout(loadingTimeout);
       if (peerConnectionRef.current) {
         peerConnectionRef.current.close();
       }
@@ -345,7 +363,7 @@ export default function StreamCard({ stream }) {
               }}
             />
           )}
-          {!isConnected && (
+          {showLoading && !isConnected && (
             <div className="preview-loading" style={{ zIndex: 3 }}>
               <div className="loading-spinner"></div>
             </div>
