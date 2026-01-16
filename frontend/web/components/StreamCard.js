@@ -149,21 +149,53 @@ export default function StreamCard({ stream }) {
             hasSrcObject: !!video.srcObject
           });
           
+          // Устанавливаем начальные размеры canvas, если видео еще не загрузило метаданные
+          if (video.videoWidth === 0 || video.videoHeight === 0) {
+            // Используем стандартные размеры или размеры контейнера
+            const container = canvas.parentElement;
+            if (container) {
+              const rect = container.getBoundingClientRect();
+              canvas.width = rect.width || 640;
+              canvas.height = rect.height || 360;
+              console.log('Preview: canvas размеры установлены из контейнера:', canvas.width, 'x', canvas.height);
+            } else {
+              canvas.width = 640;
+              canvas.height = 360;
+              console.log('Preview: canvas размеры установлены по умолчанию:', canvas.width, 'x', canvas.height);
+            }
+          }
+          
+          let retryCount = 0;
+          const maxRetries = 100; // Пробуем до 100 раз (около 1.5 секунды при 60fps)
+          
           const drawFrame = () => {
+            // Если видео загрузило метаданные, используем реальные размеры
             if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
               if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
-                console.log('Preview: canvas размеры установлены:', canvas.width, 'x', canvas.height);
+                console.log('Preview: canvas размеры установлены из видео:', canvas.width, 'x', canvas.height);
               }
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
               setIsConnected(true);
               setShowLoading(false);
+              retryCount = 0; // Сброс счетчика при успехе
             } else {
-              console.log('Preview: canvas - видео еще не готово, readyState:', video.readyState, 'width:', video.videoWidth, 'height:', video.videoHeight);
+              // Если метаданные еще не загружены, но есть srcObject, пробуем нарисовать черный экран или ждем
+              if (video.srcObject && retryCount < maxRetries) {
+                // Рисуем черный экран или градиент, пока видео не загрузится
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                retryCount++;
+                if (retryCount % 30 === 0) {
+                  console.log('Preview: canvas - ждем загрузки видео, попытка:', retryCount, 'readyState:', video.readyState);
+                }
+              } else if (retryCount >= maxRetries) {
+                console.log('Preview: canvas - превышено количество попыток, видео не загрузилось');
+              }
             }
             
-            // Продолжаем рисовать если видео на паузе или canvas активен
+            // Продолжаем рисовать если canvas активен и есть srcObject
             if (useCanvas && canvasRef.current && videoRef.current && videoRef.current.srcObject) {
               animationFrameRef.current = requestAnimationFrame(drawFrame);
             } else {
@@ -269,8 +301,10 @@ export default function StreamCard({ stream }) {
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             if (isMobile && canvasRef.current && videoRef.current && videoRef.current.srcObject) {
               const videoPlaying = !videoRef.current.paused && videoRef.current.readyState >= 2;
-              console.log('Preview: проверка canvas при ICE failed - isMobile:', isMobile, 'videoPlaying:', videoPlaying, 'useCanvas:', useCanvas);
-              if (!videoPlaying && !useCanvas) {
+              const videoHasMetadata = videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0;
+              console.log('Preview: проверка canvas при ICE failed - isMobile:', isMobile, 'videoPlaying:', videoPlaying, 'videoHasMetadata:', videoHasMetadata, 'useCanvas:', useCanvas);
+              // Запускаем canvas если видео не играет ИЛИ метаданные еще не загружены
+              if ((!videoPlaying || !videoHasMetadata) && !useCanvas) {
                 console.log('Preview: запускаем canvas для мобильных при ICE failed');
                 setTimeout(() => {
                   setUseCanvas(true);
