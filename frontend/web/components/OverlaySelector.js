@@ -104,31 +104,92 @@ export default function OverlaySelector({ onOverlayChange, onContinue, streamId 
     }
   };
 
-  const handleRemoveOverlay = () => {
-    setOverlayImage(null);
-    setOverlayVideo(null);
-    setOverlayType(null);
-    setOverlayEnabled(false);
-    setShowOverlay(false);
-    if (onOverlayChange) {
-      onOverlayChange(null, false, null);
+  const handleRemoveOverlay = async () => {
+    if (!streamId) {
+      alert('Ошибка: streamId не указан');
+      return;
     }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-    if (videoInputRef.current) {
-      videoInputRef.current.value = '';
+    
+    try {
+      // Отправляем запрос на удаление заставки
+      const formData = new FormData();
+      formData.append('streamId', streamId);
+      formData.append('overlayType', '');
+      formData.append('enabled', false);
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams/overlay`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        setOverlayImage(null);
+        setOverlayVideo(null);
+        setOverlayType(null);
+        setOverlayEnabled(false);
+        setShowOverlay(false);
+        if (onOverlayChange) {
+          onOverlayChange(null, false, null);
+        }
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        if (videoInputRef.current) {
+          videoInputRef.current.value = '';
+        }
+      } else {
+        alert('Ошибка удаления заставки. Попробуйте еще раз.');
+      }
+    } catch (error) {
+      console.error('Ошибка удаления заставки:', error);
+      alert('Ошибка удаления заставки. Попробуйте еще раз.');
     }
   };
 
-  const handleToggleOverlay = () => {
+  const handleToggleOverlay = async () => {
+    if (!streamId) {
+      alert('Ошибка: streamId не указан');
+      return;
+    }
+    
     const newState = !showOverlay;
-    setShowOverlay(newState);
-    if (onOverlayChange) {
-      const overlay = overlayType === 'video' ? overlayVideo : overlayImage;
-      if (overlay) {
-        onOverlayChange(overlay, newState, overlayType);
+    
+    try {
+      // Отправляем обновление состояния на сервер
+      const formData = new FormData();
+      formData.append('streamId', streamId);
+      formData.append('overlayType', overlayType || '');
+      formData.append('enabled', newState);
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams/overlay`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setShowOverlay(newState);
+        setOverlayEnabled(newState);
+        
+        // Вызываем callback
+        if (onOverlayChange) {
+          const overlay = overlayType === 'video' ? overlayVideo : overlayImage;
+          if (overlay) {
+            onOverlayChange(overlay, newState, overlayType);
+          }
+        }
+      } else {
+        alert('Ошибка обновления заставки. Попробуйте еще раз.');
       }
+    } catch (error) {
+      console.error('Ошибка обновления заставки:', error);
+      alert('Ошибка обновления заставки. Попробуйте еще раз.');
     }
   };
 
