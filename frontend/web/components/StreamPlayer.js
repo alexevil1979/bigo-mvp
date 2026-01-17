@@ -17,6 +17,47 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
   useEffect(() => {
     if (!stream) return;
 
+    // Загружаем состояние заставки из БД при монтировании
+    const loadOverlayState = async () => {
+      try {
+        console.log('[StreamPlayer] Загружаем состояние заставки из БД для стрима:', stream._id);
+        
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams/${stream._id}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.overlay && data.overlay.showOverlay && data.overlay.overlayType) {
+            const overlay = data.overlay;
+            console.log('[StreamPlayer] Заставка из БД:', overlay);
+            
+            // Формируем полные URL для заставок
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const overlayImageUrl = overlay.overlayImagePath ? `${apiUrl}${overlay.overlayImagePath}` : null;
+            const overlayVideoUrl = overlay.overlayVideoPath ? `${apiUrl}${overlay.overlayVideoPath}` : null;
+            
+            setOverlayImage(overlayImageUrl);
+            setOverlayVideo(overlayVideoUrl);
+            setOverlayType(overlay.overlayType || null);
+            setShowOverlay(overlay.showOverlay || false);
+            
+            console.log('[StreamPlayer] ✅ Заставка загружена из БД:', {
+              type: overlay.overlayType,
+              enabled: overlay.showOverlay,
+              hasImage: !!overlayImageUrl,
+              hasVideo: !!overlayVideoUrl
+            });
+          } else {
+            console.log('[StreamPlayer] Заставка не найдена в БД или отключена');
+          }
+        }
+      } catch (error) {
+        console.error('[StreamPlayer] Ошибка загрузки заставки из БД:', error);
+        // Не прерываем загрузку стрима из-за ошибки заставки
+      }
+    };
+    
+    loadOverlayState();
+
     const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
     socketRef.current = socket;
     
