@@ -990,7 +990,9 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
               height: '100%',
               objectFit: 'cover',
               pointerEvents: 'none',
-              zIndex: 10
+              zIndex: 10,
+              opacity: 0.7,
+              mixBlendMode: 'screen'
             }}
           />
         )}
