@@ -388,40 +388,94 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
     };
   }, [stream, user?.id]);
 
-  // Отдельный useEffect для автоматического воспроизведения
+  // Отдельный useEffect для автоматического воспроизведения и обработки загрузки метаданных
   useEffect(() => {
     const videoElement = videoRef.current;
     if (!videoElement) return;
 
-    const handleLoadedMetadata = () => {
-      if (videoElement.srcObject && videoElement.paused) {
-        videoElement.play().catch(err => {
-          console.error('Ошибка автоматического воспроизведения при загрузке:', err);
+    const tryPlay = async () => {
+      if (!videoElement.srcObject) return;
+      
+      // Ждем загрузки метаданных и размеров видео
+      if (videoElement.readyState < 1 || videoElement.videoWidth === 0) {
+        console.log('[StreamPlayer] Ждем загрузки метаданных:', {
+          readyState: videoElement.readyState,
+          videoWidth: videoElement.videoWidth,
+          videoHeight: videoElement.videoHeight
         });
+        return;
       }
+
+      if (videoElement.paused) {
+        try {
+          await videoElement.play();
+          console.log('[StreamPlayer] Видео успешно запущено после загрузки метаданных');
+          setIsConnected(true);
+          setError('');
+        } catch (err) {
+          console.log('[StreamPlayer] Не удалось запустить видео (ожидаемо для мобильных):', err);
+          // Не показываем ошибку, если это автоплей заблокирован
+          if (!err.message.includes('user didn\'t interact')) {
+            setError('Нажмите на кнопку play для запуска видео');
+          }
+        }
+      }
+    };
+
+    const handleLoadedMetadata = () => {
+      console.log('[StreamPlayer] Метаданные загружены:', {
+        readyState: videoElement.readyState,
+        videoWidth: videoElement.videoWidth,
+        videoHeight: videoElement.videoHeight
+      });
+      tryPlay();
+    };
+
+    const handleLoadedData = () => {
+      console.log('[StreamPlayer] Данные загружены');
+      tryPlay();
     };
 
     const handleCanPlay = () => {
-      if (videoElement.srcObject && videoElement.paused) {
-        videoElement.play().catch(err => {
-          console.error('Ошибка автоматического воспроизведения:', err);
-        });
-      }
+      console.log('[StreamPlayer] Видео готово к воспроизведению');
+      tryPlay();
     };
 
     const handlePlay = () => {
+      console.log('[StreamPlayer] Видео запущено пользователем');
+      setIsConnected(true);
+      setError('');
+    };
+
+    const handleWaiting = () => {
+      console.log('[StreamPlayer] Видео буферизуется');
+    };
+
+    const handlePlaying = () => {
+      console.log('[StreamPlayer] Видео играет');
       setIsConnected(true);
       setError('');
     };
 
     videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+    videoElement.addEventListener('loadeddata', handleLoadedData);
     videoElement.addEventListener('canplay', handleCanPlay);
     videoElement.addEventListener('play', handlePlay);
+    videoElement.addEventListener('waiting', handleWaiting);
+    videoElement.addEventListener('playing', handlePlaying);
+
+    // Пробуем запустить сразу, если метаданные уже загружены
+    if (videoElement.srcObject) {
+      tryPlay();
+    }
 
     return () => {
       videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      videoElement.removeEventListener('loadeddata', handleLoadedData);
       videoElement.removeEventListener('canplay', handleCanPlay);
       videoElement.removeEventListener('play', handlePlay);
+      videoElement.removeEventListener('waiting', handleWaiting);
+      videoElement.removeEventListener('playing', handlePlaying);
     };
   }, [isConnected, autoPlay]);
 
@@ -502,33 +556,83 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
           }}
           onClick={async (e) => {
             // Обработка клика на видео - пытаемся запустить если paused
-            if (videoRef.current && videoRef.current.paused && videoRef.current.srcObject) {
-              console.log('[StreamPlayer] Клик на видео, пытаемся запустить');
-              try {
-                await videoRef.current.play();
-                setIsConnected(true);
-                setError('');
-              } catch (err) {
-                console.error('[StreamPlayer] Ошибка запуска видео по клику:', err);
-                // Если автоплей заблокирован, показываем подсказку
-                if (err.name === 'NotAllowedError') {
-                  setError('Нажмите на кнопку play для запуска видео');
-                }
+            const video = videoRef.current;
+            if (!video || !video.srcObject) return;
+            
+            // Если видео уже играет, ничего не делаем
+            if (!video.paused) return;
+            
+            console.log('[StreamPlayer] Клик на видео, пытаемся запустить:', {
+              readyState: video.readyState,
+              videoWidth: video.videoWidth,
+              videoHeight: video.videoHeight,
+              paused: video.paused
+            });
+            
+            try {
+              // Если метаданные еще не загружены, ждем их
+              if (video.readyState < 1 || video.videoWidth === 0) {
+                console.log('[StreamPlayer] Ждем загрузки метаданных перед запуском');
+                // Ждем события loadedmetadata
+                await new Promise((resolve) => {
+                  const handler = () => {
+                    video.removeEventListener('loadedmetadata', handler);
+                    resolve();
+                  };
+                  video.addEventListener('loadedmetadata', handler);
+                  // Таймаут на случай, если метаданные не загрузятся
+                  setTimeout(() => {
+                    video.removeEventListener('loadedmetadata', handler);
+                    resolve();
+                  }, 5000);
+                });
               }
+              
+              await video.play();
+              console.log('[StreamPlayer] Видео успешно запущено по клику');
+              setIsConnected(true);
+              setError('');
+            } catch (err) {
+              console.error('[StreamPlayer] Ошибка запуска видео по клику:', err);
+              setError('Не удалось запустить видео. Попробуйте еще раз.');
             }
           }}
           onLoadedMetadata={() => {
-            if (videoRef.current && videoRef.current.paused) {
-              videoRef.current.play().catch(err => {
-                console.error('Ошибка автоплея:', err);
+            const video = videoRef.current;
+            if (video && video.srcObject && video.paused) {
+              console.log('[StreamPlayer] onLoadedMetadata - метаданные загружены:', {
+                readyState: video.readyState,
+                videoWidth: video.videoWidth,
+                videoHeight: video.videoHeight
               });
+              // Пробуем запустить только если есть размеры
+              if (video.videoWidth > 0 && video.videoHeight > 0) {
+                video.play().catch(err => {
+                  console.log('[StreamPlayer] Автоплей заблокирован (ожидаемо):', err);
+                });
+              }
+            }
+          }}
+          onLoadedData={() => {
+            const video = videoRef.current;
+            if (video && video.srcObject && video.paused) {
+              console.log('[StreamPlayer] onLoadedData - данные загружены');
+              if (video.videoWidth > 0 && video.videoHeight > 0) {
+                video.play().catch(err => {
+                  console.log('[StreamPlayer] Автоплей заблокирован (ожидаемо):', err);
+                });
+              }
             }
           }}
           onCanPlay={() => {
-            if (videoRef.current && videoRef.current.paused) {
-              videoRef.current.play().catch(err => {
-                console.error('Ошибка автоплея:', err);
-              });
+            const video = videoRef.current;
+            if (video && video.srcObject && video.paused) {
+              console.log('[StreamPlayer] onCanPlay - видео готово к воспроизведению');
+              if (video.videoWidth > 0 && video.videoHeight > 0) {
+                video.play().catch(err => {
+                  console.log('[StreamPlayer] Автоплей заблокирован (ожидаемо):', err);
+                });
+              }
             }
           }}
           onPlay={() => {
@@ -538,6 +642,14 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
           }}
           onPause={() => {
             console.log('[StreamPlayer] Видео приостановлено');
+          }}
+          onWaiting={() => {
+            console.log('[StreamPlayer] Видео буферизуется');
+          }}
+          onPlaying={() => {
+            setIsConnected(true);
+            setError('');
+            console.log('[StreamPlayer] Видео играет');
           }}
         />
         {showOverlay && overlayType === 'image' && overlayImage && (
