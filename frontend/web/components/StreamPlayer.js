@@ -906,7 +906,7 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
             console.log('[StreamPlayer] Видео играет');
           }}
         />
-        {/* Overlay только для изображений - видео заставка уже в основном потоке */}
+        {/* Overlay для изображений */}
         {showOverlay && overlayType === 'image' && overlayImage && (
           <div style={{
             position: 'absolute',
@@ -920,6 +920,30 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
             pointerEvents: 'none',
             zIndex: 10
           }} />
+        )}
+        {/* Overlay для видео - показываем только если это не основной поток */}
+        {showOverlay && overlayType === 'video' && overlayVideo && (
+          <video
+            key={`overlay-video-${overlayVideo}`}
+            src={overlayVideo}
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              pointerEvents: 'none',
+              zIndex: 10
+            }}
+            onError={(e) => {
+              console.error('[StreamPlayer] Ошибка загрузки видео заставки:', e);
+            }}
+          />
         )}
       </div>
       {!isConnected && <div className="loading">Подключение к стриму...</div>}

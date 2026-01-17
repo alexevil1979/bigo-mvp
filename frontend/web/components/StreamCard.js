@@ -17,7 +17,10 @@ export default function StreamCard({ stream }) {
   const [useCanvas, setUseCanvas] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
-  // Убрали состояния заставки - она уже в основном потоке
+  const [overlayImage, setOverlayImage] = useState(null);
+  const [overlayVideo, setOverlayVideo] = useState(null);
+  const [overlayType, setOverlayType] = useState(null);
+  const [showOverlay, setShowOverlay] = useState(false);
 
   useEffect(() => {
     if (!stream) return;
@@ -460,7 +463,24 @@ export default function StreamCard({ stream }) {
           }
         });
 
-        // Убрали обработку заставки - она уже в основном потоке через captureStream
+        // Слушаем изменения заставки от стримера
+        const overlayHandler = (data) => {
+          if (data.streamId === stream._id) {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const overlayImageUrl = data.overlayImagePath 
+              ? `${apiUrl}${data.overlayImagePath}` 
+              : (data.overlayImage || null);
+            const overlayVideoUrl = data.overlayVideoPath 
+              ? `${apiUrl}${data.overlayVideoPath}` 
+              : (data.overlayVideo || null);
+            
+            setOverlayImage(overlayImageUrl);
+            setOverlayVideo(overlayVideoUrl);
+            setOverlayType(data.overlayType || null);
+            setShowOverlay(data.enabled);
+          }
+        };
+        socket.on('stream-overlay-changed', overlayHandler);
 
       } catch (err) {
         console.error('Ошибка настройки превью:', err);
@@ -478,6 +498,7 @@ export default function StreamCard({ stream }) {
         peerConnectionRef.current.close();
       }
       if (socketRef.current) {
+        socketRef.current.off('stream-overlay-changed');
         socketRef.current.emit('leave-stream', { streamId: stream._id });
         socketRef.current.disconnect();
       }
@@ -628,18 +649,7 @@ export default function StreamCard({ stream }) {
         </div>
       </div>
       
-      {/* Дополнительный блок с плеером для мобильных устройств */}
-      {(() => {
-        if (typeof window === 'undefined') return null;
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        return isMobile ? (
-          <div className="stream-mobile-player-wrapper">
-            <div className="stream-mobile-player-container">
-              <StreamPlayer stream={stream} user={null} autoPlay={false} />
-            </div>
-          </div>
-        ) : null;
-      })()}
+      {/* Убрали дополнительный блок для мобильных - используем один StreamPlayer, чтобы избежать двойного отображения */}
     </Link>
   );
 }
