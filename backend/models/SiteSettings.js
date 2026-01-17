@@ -38,7 +38,7 @@ const SiteSettingsSchema = new mongoose.Schema({
 });
 
 // Индексы
-SiteSettingsSchema.index({ key: 1 });
+// key уже имеет unique: true, который автоматически создает индекс, не дублируем
 SiteSettingsSchema.index({ category: 1 });
 
 // Статические методы для получения настроек

@@ -287,11 +287,12 @@ exports.uploadScreenshot = async (req, res) => {
     });
 
     // Проверяем, что стрим существует и принадлежит пользователю
+    // Разрешаем загрузку скриншотов для стримов со статусом 'live' или 'ended' (только что завершенных)
     // Пробуем найти стрим разными способами (на случай проблем с типами ID)
     let stream = await Stream.findOne({
       _id: streamId,
       streamer: req.user._id,
-      status: 'live'
+      status: { $in: ['live', 'ended'] }
     });
 
     // Если не нашли, пробуем найти по строковому ID
@@ -300,7 +301,7 @@ exports.uploadScreenshot = async (req, res) => {
       stream = await Stream.findOne({
         _id: streamId.toString(),
         streamer: req.user._id.toString(),
-        status: 'live'
+        status: { $in: ['live', 'ended'] }
       });
     }
 
@@ -309,7 +310,7 @@ exports.uploadScreenshot = async (req, res) => {
       console.log('[Screenshot Upload] Попытка найти стрим только по ID');
       stream = await Stream.findOne({
         _id: streamId,
-        status: 'live'
+        status: { $in: ['live', 'ended'] }
       });
       
       if (stream) {
@@ -330,15 +331,31 @@ exports.uploadScreenshot = async (req, res) => {
 
     if (!stream) {
       console.error('[Screenshot Upload] Ошибка: стрим не найден или не принадлежит пользователю');
-      console.error('[Screenshot Upload] Попробуем найти все активные стримы пользователя:');
+      console.error('[Screenshot Upload] Попробуем найти все стримы пользователя (live и ended):');
       const userStreams = await Stream.find({
         streamer: req.user._id,
-        status: 'live'
-      });
-      console.error('[Screenshot Upload] Активные стримы пользователя:', userStreams.map(s => ({
+        status: { $in: ['live', 'ended'] }
+      }).sort({ createdAt: -1 }).limit(5);
+      console.error('[Screenshot Upload] Стримы пользователя:', userStreams.map(s => ({
         id: s._id.toString(),
-        title: s.title
+        title: s.title,
+        status: s.status,
+        createdAt: s.createdAt
       })));
+      
+      // Также попробуем найти стрим по ID без проверки статуса (для диагностики)
+      const anyStream = await Stream.findById(streamId);
+      if (anyStream) {
+        console.error('[Screenshot Upload] Стрим найден в БД, но не подходит:', {
+          id: anyStream._id.toString(),
+          status: anyStream.status,
+          streamer: anyStream.streamer.toString(),
+          requestedUserId: req.user._id.toString(),
+          match: anyStream.streamer.toString() === req.user._id.toString()
+        });
+      } else {
+        console.error('[Screenshot Upload] Стрим с ID', streamId, 'не найден в БД');
+      }
       
       // Удаляем загруженный файл, если стрим не найден
       if (req.file.path) {

@@ -48,7 +48,7 @@ const ContentPageSchema = new mongoose.Schema({
 });
 
 // Индексы
-ContentPageSchema.index({ slug: 1 });
+// slug уже имеет unique: true, который автоматически создает индекс, не дублируем
 ContentPageSchema.index({ category: 1 });
 ContentPageSchema.index({ isPublished: 1 });
 
