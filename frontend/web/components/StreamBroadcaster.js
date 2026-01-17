@@ -71,27 +71,41 @@ export default function StreamBroadcaster({ stream, user }) {
                   overlayVideoRef.current.load();
                   
                   // Ждем загрузки и переключаемся на заставку
-                  overlayVideoRef.current.onloadeddata = async () => {
-                    console.log('[StreamBroadcaster] Видео заставка загружено, переключаемся на неё');
-                    // Небольшая задержка для полной загрузки
-                    setTimeout(async () => {
-                      if (localStreamRef.current) {
+                  // Возвращаем Promise, чтобы дождаться переключения перед запуском стриминга
+                  return new Promise((resolve) => {
+                    overlayVideoRef.current.onloadeddata = async () => {
+                      console.log('[StreamBroadcaster] Видео заставка загружено, переключаемся на неё');
+                      // Небольшая задержка для полной загрузки
+                      setTimeout(async () => {
+                        // Сначала создаем поток с камеры, если его еще нет
+                        if (!localStreamRef.current) {
+                          try {
+                            const mediaStream = await navigator.mediaDevices.getUserMedia({
+                              video: true,
+                              audio: true
+                            });
+                            localStreamRef.current = mediaStream;
+                            cameraStreamRef.current = mediaStream;
+                          } catch (error) {
+                            console.error('[StreamBroadcaster] Ошибка получения камеры:', error);
+                            resolve();
+                            return;
+                          }
+                        }
+                        
+                        // Теперь переключаемся на заставку
                         await switchToOverlayVideo();
                         console.log('[StreamBroadcaster] ✅ Переключено на заставку после восстановления из БД');
-                      } else {
-                        // Если потока еще нет, переключимся после его создания
-                        const checkAndSwitch = setInterval(async () => {
-                          if (localStreamRef.current) {
-                            clearInterval(checkAndSwitch);
-                            await switchToOverlayVideo();
-                            console.log('[StreamBroadcaster] ✅ Переключено на заставку после создания потока');
-                          }
-                        }, 100);
-                        // Таймаут на случай, если поток не создастся
-                        setTimeout(() => clearInterval(checkAndSwitch), 5000);
-                      }
-                    }, 500);
-                  };
+                        resolve();
+                      }, 500);
+                    };
+                    
+                    // Таймаут на случай, если видео не загрузится
+                    setTimeout(() => {
+                      console.warn('[StreamBroadcaster] Таймаут загрузки видео заставки');
+                      resolve();
+                    }, 5000);
+                  });
                 }
               }
               
@@ -121,8 +135,17 @@ export default function StreamBroadcaster({ stream, user }) {
         }
       };
       
-      restoreOverlay();
-      startStreaming();
+      // ВАЖНО: сначала восстанавливаем заставку и переключаемся на неё,
+      // а потом запускаем стриминг, чтобы новые зрители сразу получали заставку
+      restoreOverlay().then(() => {
+        // Небольшая задержка, чтобы заставка успела переключиться
+        setTimeout(() => {
+          startStreaming();
+        }, 1000);
+      }).catch(() => {
+        // Если ошибка при восстановлении заставки, все равно запускаем стриминг
+        startStreaming();
+      });
     }
 
     return () => {
