@@ -510,28 +510,48 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
       setError('');
     };
 
+    let waitingTimeout = null;
     const handleWaiting = () => {
       console.log('[StreamPlayer] Видео буферизуется');
       // Если видео долго буферизуется, показываем предупреждение
-      const timeout = setTimeout(() => {
+      if (waitingTimeout) {
+        clearTimeout(waitingTimeout);
+      }
+      waitingTimeout = setTimeout(() => {
         if (videoElement.paused) {
           console.log('[StreamPlayer] Видео долго буферизуется, возможно проблема с соединением');
           setError('Видео буферизуется... Проверьте соединение');
+        } else {
+          // Видео не paused, но все еще буферизуется - возможно проблема с данными
+          console.log('[StreamPlayer] Видео играет, но долго буферизуется');
+          setError('Видео буферизуется...');
         }
-      }, 5000);
-      
-      // Очищаем таймаут при переходе в playing
-      const clearOnPlaying = () => {
-        clearTimeout(timeout);
-        videoElement.removeEventListener('playing', clearOnPlaying);
-      };
-      videoElement.addEventListener('playing', clearOnPlaying);
+      }, 3000);
     };
 
     const handlePlaying = () => {
       console.log('[StreamPlayer] Видео играет - подтверждено событием playing');
+      // Очищаем таймаут буферизации
+      if (waitingTimeout) {
+        clearTimeout(waitingTimeout);
+        waitingTimeout = null;
+      }
       setIsConnected(true);
       setError('');
+    };
+    
+    const handleProgress = () => {
+      // Видео получает данные - это хороший знак
+      if (videoElement.buffered.length > 0) {
+        const bufferedEnd = videoElement.buffered.end(videoElement.buffered.length - 1);
+        const currentTime = videoElement.currentTime;
+        const bufferedAhead = bufferedEnd - currentTime;
+        console.log('[StreamPlayer] Видео получает данные:', {
+          bufferedAhead: bufferedAhead.toFixed(2),
+          currentTime: currentTime.toFixed(2),
+          readyState: videoElement.readyState
+        });
+      }
     };
     
     const handleStalled = () => {
@@ -554,6 +574,7 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
     videoElement.addEventListener('play', handlePlay);
     videoElement.addEventListener('waiting', handleWaiting);
     videoElement.addEventListener('playing', handlePlaying);
+    videoElement.addEventListener('progress', handleProgress);
     videoElement.addEventListener('stalled', handleStalled);
     videoElement.addEventListener('error', handleError);
 
@@ -563,12 +584,16 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
     }
 
     return () => {
+      if (waitingTimeout) {
+        clearTimeout(waitingTimeout);
+      }
       videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
       videoElement.removeEventListener('loadeddata', handleLoadedData);
       videoElement.removeEventListener('canplay', handleCanPlay);
       videoElement.removeEventListener('play', handlePlay);
       videoElement.removeEventListener('waiting', handleWaiting);
       videoElement.removeEventListener('playing', handlePlaying);
+      videoElement.removeEventListener('progress', handleProgress);
       videoElement.removeEventListener('stalled', handleStalled);
       videoElement.removeEventListener('error', handleError);
     };
