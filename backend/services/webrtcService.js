@@ -197,21 +197,36 @@ const initialize = (socketIo) => {
             console.log(`[webrtcService] Отправляем заставку в комнату ${streamRoom}: ${streamSockets.length} сокетов`);
             
             // Транслируем событие всем зрителям стрима в комнате WebRTC
-            socket.to(webrtcRoom).emit('stream-overlay-changed', {
+            const overlayData = {
               streamId,
               overlayImage,
               overlayVideo,
               overlayType,
               enabled
-            });
-            // Также отправляем в комнату чата на случай, если зрители там
-            io.to(streamRoom).emit('stream-overlay-changed', {
+            };
+            
+            console.log(`[webrtcService] 📤 Отправляем заставку в комнату ${webrtcRoom}:`, {
               streamId,
-              overlayImage,
-              overlayVideo,
               overlayType,
-              enabled
+              enabled,
+              hasImage: !!overlayImage,
+              hasVideo: !!overlayVideo,
+              imageLength: overlayImage ? overlayImage.length : 0,
+              videoLength: overlayVideo ? overlayVideo.length : 0,
+              socketsInRoom: webrtcSockets.length
             });
+            
+            socket.to(webrtcRoom).emit('stream-overlay-changed', overlayData);
+            
+            // Также отправляем в комнату stream на случай, если зрители там
+            console.log(`[webrtcService] 📤 Отправляем заставку в комнату ${streamRoom}:`, {
+              streamId,
+              overlayType,
+              enabled,
+              socketsInRoom: streamSockets.length
+            });
+            
+            io.to(streamRoom).emit('stream-overlay-changed', overlayData);
             
             console.log(`[webrtcService] 🎨 Заставка стрима ${streamId} (${overlayType}) ${enabled ? 'включена' : 'отключена'}, отправлено зрителям`);
           });
