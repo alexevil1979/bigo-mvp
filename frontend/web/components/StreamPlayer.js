@@ -495,23 +495,44 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
 
         // Слушаем изменения заставки от стримера
         const overlayHandler = (data) => {
-          console.log('[StreamPlayer] Получено событие заставки:', data);
-          if (data.streamId === stream._id) {
-            console.log('[StreamPlayer] Применяю заставку:', { 
-              overlayImage: data.overlayImage ? 'есть (base64)' : 'нет', 
-              overlayVideo: data.overlayVideo ? 'есть (base64, длина: ' + data.overlayVideo.length + ')' : 'нет', 
-              type: data.overlayType, 
-              enabled: data.enabled 
+          try {
+            console.log('[StreamPlayer] Получено событие заставки:', {
+              streamId: data.streamId,
+              overlayType: data.overlayType,
+              enabled: data.enabled,
+              hasImage: !!data.overlayImage,
+              hasVideo: !!data.overlayVideo,
+              videoLength: data.overlayVideo ? data.overlayVideo.length : 0
             });
-            setOverlayImage(data.overlayImage || null);
-            setOverlayVideo(data.overlayVideo || null);
-            setOverlayType(data.overlayType || null);
-            setShowOverlay(data.enabled);
             
-            // Логируем для диагностики
-            if (data.overlayType === 'video' && data.enabled && data.overlayVideo) {
-              console.log('[StreamPlayer] Видео заставка включена, длина base64:', data.overlayVideo.length);
+            if (data.streamId === stream._id) {
+              // Проверяем размер видео заставки
+              if (data.overlayType === 'video' && data.enabled && data.overlayVideo) {
+                const base64Length = data.overlayVideo.length;
+                const sizeInMB = (base64Length * 3) / 4 / 1024 / 1024;
+                console.log('[StreamPlayer] Видео заставка включена, размер:', sizeInMB.toFixed(2), 'MB');
+                
+                // Если видео слишком большое, предупреждаем, но не блокируем
+                if (sizeInMB > 20) {
+                  console.warn('[StreamPlayer] ВНИМАНИЕ: Видео заставка очень большое:', sizeInMB.toFixed(2), 'MB. Это может вызвать проблемы.');
+                }
+              }
+              
+              // Безопасно устанавливаем заставку
+              setOverlayImage(data.overlayImage || null);
+              setOverlayVideo(data.overlayVideo || null);
+              setOverlayType(data.overlayType || null);
+              setShowOverlay(data.enabled);
+              
+              console.log('[StreamPlayer] Заставка применена:', {
+                type: data.overlayType,
+                enabled: data.enabled,
+                showOverlay: data.enabled
+              });
             }
+          } catch (error) {
+            console.error('[StreamPlayer] Ошибка обработки заставки:', error);
+            // Не прерываем стрим из-за ошибки заставки
           }
         };
         socket.on('stream-overlay-changed', overlayHandler);

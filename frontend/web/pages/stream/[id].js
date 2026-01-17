@@ -97,6 +97,13 @@ export default function StreamPage() {
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams/${id}`
       );
       const streamData = response.data.stream;
+      
+      console.log('[StreamPage] Загружен стрим:', {
+        id: streamData._id,
+        status: streamData.status,
+        title: streamData.title
+      });
+      
       setStream(streamData);
       
       // Проверяем, является ли пользователь стримером
@@ -111,7 +118,11 @@ export default function StreamPage() {
         }
       }
     } catch (error) {
-      console.error('Ошибка загрузки стрима:', error);
+      console.error('[StreamPage] Ошибка загрузки стрима:', error);
+      // Если стрим не найден или завершен, не показываем ошибку, а показываем StreamEnded
+      if (error.response?.status === 404) {
+        setStream({ _id: id, status: 'ended' });
+      }
     } finally {
       setLoading(false);
     }
