@@ -103,16 +103,32 @@ exports.getStreams = async (req, res) => {
  */
 exports.getStream = async (req, res) => {
   try {
-    const stream = await Stream.findById(req.params.id)
+    const streamId = req.params.id;
+    console.log(`[getStream] Запрос стрима: ${streamId}`);
+    
+    const stream = await Stream.findById(streamId)
       .populate('streamer', 'nickname avatar beans stats');
 
     if (!stream) {
+      console.log(`[getStream] Стрим ${streamId} не найден`);
       return res.status(404).json({ error: 'Стрим не найден' });
+    }
+
+    console.log(`[getStream] Стрим ${streamId} найден: status=${stream.status}, lastHeartbeat=${stream.lastHeartbeat ? stream.lastHeartbeat.toISOString() : 'null'}`);
+    
+    if (stream.status === 'live') {
+      const now = new Date();
+      const lastHeartbeat = stream.lastHeartbeat;
+      const timeSinceHeartbeat = lastHeartbeat 
+        ? Math.floor((now.getTime() - lastHeartbeat.getTime()) / 1000)
+        : 'неизвестно';
+      console.log(`[getStream] Стрим ${streamId} активен, время с последнего heartbeat: ${timeSinceHeartbeat} сек`);
     }
 
     res.json({ stream });
   } catch (error) {
-    console.error('Ошибка получения стрима:', error);
+    console.error('[getStream] Ошибка при получении стрима:', error);
+    console.error('[getStream] Stack:', error.stack);
     res.status(500).json({ error: 'Ошибка при получении стрима' });
   }
 };
