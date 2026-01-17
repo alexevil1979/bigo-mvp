@@ -29,6 +29,8 @@ export default function StreamBroadcaster({ stream, user }) {
   const heartbeatIntervalRef = useRef(null);
   const screenshotIntervalRef = useRef(null);
   const screenshotCanvasRef = useRef(null);
+  const overlayVideoRef = useRef(null); // Скрытый video элемент для видео заставки
+  const cameraStreamRef = useRef(null); // Сохраняем оригинальный поток с камеры
 
   useEffect(() => {
     if (stream) {
@@ -52,10 +54,33 @@ export default function StreamBroadcaster({ stream, user }) {
               
               // Формируем полные URL для заставок
               const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-              setOverlayImage(overlay.overlayImagePath ? `${apiUrl}${overlay.overlayImagePath}` : null);
-              setOverlayVideo(overlay.overlayVideoPath ? `${apiUrl}${overlay.overlayVideoPath}` : null);
+              const overlayImageUrl = overlay.overlayImagePath ? `${apiUrl}${overlay.overlayImagePath}` : null;
+              const overlayVideoUrl = overlay.overlayVideoPath ? `${apiUrl}${overlay.overlayVideoPath}` : null;
+              
+              setOverlayImage(overlayImageUrl);
+              setOverlayVideo(overlayVideoUrl);
               setOverlayType(overlay.overlayType || null);
               setShowOverlay(overlay.showOverlay || false);
+              
+              // Если видео заставка включена, переключаемся на неё после загрузки
+              if (overlay.showOverlay && overlay.overlayType === 'video' && overlayVideoUrl) {
+                // Устанавливаем src для скрытого video элемента
+                if (overlayVideoRef.current) {
+                  overlayVideoRef.current.src = overlayVideoUrl;
+                  overlayVideoRef.current.load();
+                  
+                  // Ждем загрузки и переключаемся на заставку
+                  overlayVideoRef.current.onloadeddata = async () => {
+                    console.log('[StreamBroadcaster] Видео заставка загружено, переключаемся на неё');
+                    // Небольшая задержка для полной загрузки
+                    setTimeout(async () => {
+                      if (localStreamRef.current) {
+                        await switchToOverlayVideo();
+                      }
+                    }, 500);
+                  };
+                }
+              }
               
               // Если заставка была включена, отправляем событие после подключения socket
               if (overlay.showOverlay && overlay.overlayType) {
