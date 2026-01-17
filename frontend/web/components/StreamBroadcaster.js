@@ -308,6 +308,31 @@ export default function StreamBroadcaster({ stream, user }) {
             delete peerConnectionsRef.current[data.viewerId];
           }
           await handleNewViewer(data.viewerId, socket, stream._id);
+          
+          // Отправляем текущее состояние заставки новому зрителю
+          if (showOverlay && overlayType && socket.connected) {
+            console.log('[StreamBroadcaster] Отправляем состояние заставки новому зрителю:', {
+              viewerId: data.viewerId,
+              overlayType,
+              showOverlay
+            });
+            
+            const overlayImagePath = overlayType === 'image' && overlayImage && typeof overlayImage === 'string' && overlayImage.includes('/uploads/') 
+              ? overlayImage.replace(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', '')
+              : null;
+            const overlayVideoPath = overlayType === 'video' && overlayVideo && typeof overlayVideo === 'string' && overlayVideo.includes('/uploads/') 
+              ? overlayVideo.replace(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', '')
+              : null;
+            
+            // Отправляем событие заставки напрямую в комнату зрителя
+            socket.to(`webrtc-${stream._id}`).emit('stream-overlay-changed', {
+              streamId: stream._id,
+              overlayImagePath,
+              overlayVideoPath,
+              overlayType,
+              enabled: showOverlay
+            });
+          }
         });
 
         socket.on('user-disconnected', (data) => {
