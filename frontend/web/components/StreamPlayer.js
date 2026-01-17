@@ -65,6 +65,81 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
 
         peerConnectionRef.current = pc;
 
+        // Мониторинг статистики WebRTC для диагностики буферизации
+        let statsInterval = null;
+        const startStatsMonitoring = () => {
+          if (statsInterval) return;
+          
+          statsInterval = setInterval(async () => {
+            try {
+              const stats = await pc.getStats();
+              let videoStats = null;
+              let connectionStats = null;
+              
+              stats.forEach(report => {
+                if (report.type === 'inbound-rtp' && report.mediaType === 'video') {
+                  videoStats = {
+                    bytesReceived: report.bytesReceived,
+                    packetsReceived: report.packetsReceived,
+                    packetsLost: report.packetsLost,
+                    jitter: report.jitter,
+                    framesDecoded: report.framesDecoded,
+                    framesDropped: report.framesDropped,
+                    framesReceived: report.framesReceived
+                  };
+                }
+                if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                  connectionStats = {
+                    bytesReceived: report.bytesReceived,
+                    bytesSent: report.bytesSent,
+                    packetsReceived: report.packetsReceived,
+                    packetsSent: report.packetsSent,
+                    roundTripTime: report.currentRoundTripTime,
+                    availableOutgoingBitrate: report.availableOutgoingBitrate,
+                    availableIncomingBitrate: report.availableIncomingBitrate
+                  };
+                }
+              });
+              
+              if (videoStats) {
+                console.log('[StreamPlayer] WebRTC Video Stats:', videoStats);
+                
+                // Проверяем, получает ли видео данные
+                if (videoStats.packetsReceived === 0 && pc.connectionState === 'connected') {
+                  console.warn('[StreamPlayer] ВНИМАНИЕ: WebRTC соединение установлено, но данные не получаются!');
+                  setError('Соединение установлено, но данные не передаются. Проверьте сеть.');
+                }
+                
+                // Проверяем потери пакетов
+                if (videoStats.packetsLost > 0) {
+                  const lossRate = (videoStats.packetsLost / (videoStats.packetsReceived + videoStats.packetsLost)) * 100;
+                  if (lossRate > 5) {
+                    console.warn('[StreamPlayer] ВНИМАНИЕ: Высокая потеря пакетов:', lossRate.toFixed(2) + '%');
+                  }
+                }
+              }
+              
+              if (connectionStats) {
+                console.log('[StreamPlayer] WebRTC Connection Stats:', connectionStats);
+              }
+              
+              // Проверяем буфер видео
+              const video = videoRef.current;
+              if (video && video.buffered.length > 0) {
+                const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                const currentTime = video.currentTime;
+                const bufferedAhead = bufferedEnd - currentTime;
+                
+                if (bufferedAhead < 0.5 && !video.paused) {
+                  console.warn('[StreamPlayer] ВНИМАНИЕ: Мало данных в буфере:', bufferedAhead.toFixed(2), 'сек');
+                }
+              }
+            } catch (error) {
+              console.error('[StreamPlayer] Ошибка получения статистики WebRTC:', error);
+            }
+          }, 3000); // Каждые 3 секунды
+        };
+
         // Обработка входящего потока
         pc.ontrack = (event) => {
           console.log('[StreamPlayer] Получен трек от стримера:', event);
@@ -85,6 +160,9 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
               console.log('[StreamPlayer] создан новый MediaStream из event.track');
               videoRef.current.srcObject = mediaStream;
             }
+            
+            // Запускаем мониторинг статистики после получения трека
+            startStatsMonitoring();
             
             console.log('[StreamPlayer] videoRef.current после установки srcObject:', {
               srcObject: !!videoRef.current.srcObject,
@@ -438,6 +516,12 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
     setupWebRTC();
 
     return () => {
+      // Останавливаем мониторинг статистики
+      if (statsInterval) {
+        clearInterval(statsInterval);
+        statsInterval = null;
+      }
+      
       if (peerConnectionRef.current) {
         peerConnectionRef.current.close();
       }
