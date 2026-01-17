@@ -468,13 +468,26 @@ export default function StreamBroadcaster({ stream, user }) {
         }
       }
       
-      socketRef.current.emit('stream-overlay-changed', {
+      const overlayData = {
         streamId: stream._id,
         overlayImage: type === 'image' && enabled ? overlay : null,
         overlayVideo: type === 'video' && enabled ? overlay : null,
         overlayType: enabled ? type : null,
         enabled: enabled
+      };
+      
+      console.log('[StreamBroadcaster] Отправляю событие stream-overlay-changed:', {
+        streamId: overlayData.streamId,
+        overlayType: overlayData.overlayType,
+        enabled: overlayData.enabled,
+        hasImage: !!overlayData.overlayImage,
+        hasVideo: !!overlayData.overlayVideo,
+        imageLength: overlayData.overlayImage ? overlayData.overlayImage.length : 0,
+        videoLength: overlayData.overlayVideo ? overlayData.overlayVideo.length : 0,
+        socketConnected: socketRef.current.connected
       });
+      
+      socketRef.current.emit('stream-overlay-changed', overlayData);
     } else if (!socketRef.current?.connected) {
       console.warn('Socket не подключен, не могу отправить событие заставки');
     }
