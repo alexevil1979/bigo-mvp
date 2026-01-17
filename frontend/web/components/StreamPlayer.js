@@ -197,13 +197,41 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
             }
           } else if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
             console.log('[StreamPlayer] ICE failed/disconnected');
-            setError('Соединение потеряно');
-            setIsConnected(false);
             
-            // Даже если соединение failed, пробуем запустить видео если srcObject есть
-            if (videoRef.current && videoRef.current.srcObject && videoRef.current.paused) {
+            const video = videoRef.current;
+            // Проверяем, есть ли видео и играет ли оно
+            if (video && video.srcObject) {
+              const hasVideo = video.readyState >= 2 || video.videoWidth > 0 || !video.paused;
+              
+              if (hasVideo) {
+                console.log('[StreamPlayer] Видео есть, сохраняем соединение даже при failed:', {
+                  readyState: video.readyState,
+                  videoWidth: video.videoWidth,
+                  paused: video.paused
+                });
+                // Не сбрасываем isConnected, если видео играет
+                if (!video.paused) {
+                  setIsConnected(true);
+                  setError('');
+                } else {
+                  // Видео есть, но приостановлено - показываем предупреждение, но не сбрасываем
+                  setError('Соединение нестабильно, но видео доступно');
+                }
+              } else {
+                // Видео нет - сбрасываем соединение
+                setError('Соединение потеряно');
+                setIsConnected(false);
+              }
+            } else {
+              // Нет srcObject - сбрасываем соединение
+              setError('Соединение потеряно');
+              setIsConnected(false);
+            }
+            
+            // Пробуем запустить видео если оно есть, но приостановлено
+            if (video && video.srcObject && video.paused) {
               console.log('[StreamPlayer] Попытка запустить видео после failed соединения');
-              videoRef.current.play().catch(err => {
+              video.play().catch(err => {
                 console.log('[StreamPlayer] Не удалось запустить видео после failed:', err);
               });
             }
