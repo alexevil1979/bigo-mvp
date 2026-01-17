@@ -168,33 +168,47 @@ exports.getMyActiveStream = async (req, res) => {
  */
 exports.endStream = async (req, res) => {
   try {
+    const streamId = req.params.id;
+    const userId = req.user._id;
+    console.log(`[endStream] Запрос завершения стрима: ${streamId} от пользователя: ${userId}`);
+    
     const stream = await Stream.findOne({
-      _id: req.params.id,
-      streamer: req.user._id
+      _id: streamId,
+      streamer: userId
     });
 
     if (!stream) {
+      console.log(`[endStream] Стрим ${streamId} не найден или пользователь ${userId} не является стримером`);
       return res.status(404).json({ error: 'Стрим не найден или у вас нет прав' });
     }
 
+    console.log(`[endStream] Стрим ${streamId} найден: status=${stream.status}, streamer=${stream.streamer}`);
+
     if (stream.status === 'ended') {
+      console.log(`[endStream] Стрим ${streamId} уже завершен`);
       return res.status(400).json({ error: 'Стрим уже завершен' });
     }
 
+    console.log(`[endStream] Завершаем стрим ${streamId}`);
     await stream.endStream();
+    console.log(`[endStream] Стрим ${streamId} успешно завершен`);
 
     // Уведомляем всех клиентов о завершении стрима через Socket.IO
     const io = req.app.get('io');
     if (io) {
+      console.log(`[endStream] Отправляем stream-list-updated для стрима ${streamId}`);
       io.emit('stream-list-updated', {
         type: 'ended',
         streamId: stream._id
       });
+    } else {
+      console.warn(`[endStream] Socket.IO не доступен для отправки уведомлений`);
     }
 
     res.json({ message: 'Стрим завершен', stream });
   } catch (error) {
-    console.error('Ошибка завершения стрима:', error);
+    console.error('[endStream] Ошибка завершения стрима:', error);
+    console.error('[endStream] Stack:', error.stack);
     res.status(500).json({ error: 'Ошибка при завершении стрима' });
   }
 };

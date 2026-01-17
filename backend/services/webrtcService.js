@@ -27,8 +27,17 @@ const initialize = (socketIo) => {
         console.log(`📹 Стример ${userId} начал стрим ${streamId}`);
         // Обновляем heartbeat при присоединении стримера
         const Stream = require('../models/Stream');
-        Stream.findByIdAndUpdate(streamId, { lastHeartbeat: new Date() }).catch(err => {
-          console.error('Ошибка обновления heartbeat:', err);
+        const now = new Date();
+        console.log(`[webrtcService] Стример присоединился к стриму ${streamId}, обновляем heartbeat`);
+        Stream.findByIdAndUpdate(streamId, { lastHeartbeat: now }).then(result => {
+          if (result) {
+            console.log(`[webrtcService] Heartbeat обновлен при присоединении стримера: ${streamId}, lastHeartbeat=${now.toISOString()}`);
+          } else {
+            console.warn(`[webrtcService] Стрим ${streamId} не найден при обновлении heartbeat при присоединении`);
+          }
+        }).catch(err => {
+          console.error(`[webrtcService] Ошибка обновления heartbeat при присоединении стримера ${streamId}:`, err);
+          console.error(`[webrtcService] Stack:`, err.stack);
         });
         // Уведомляем всех зрителей о новом стримере
         socket.to(`webrtc-${streamId}`).emit('streamer-joined', {
