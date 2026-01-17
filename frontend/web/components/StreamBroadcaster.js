@@ -130,6 +130,13 @@ export default function StreamBroadcaster({ stream, user }) {
         });
       }
 
+      console.log('[StreamBroadcaster] Отправляю join-stream:', {
+        streamId: stream._id,
+        userId: user.id,
+        isStreamer: true,
+        socketConnected: socketRef.current.connected
+      });
+      
       socketRef.current.emit('join-stream', {
         streamId: stream._id,
         userId: user.id,
