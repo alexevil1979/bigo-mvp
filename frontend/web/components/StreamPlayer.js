@@ -693,6 +693,24 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
     };
   }, [isConnected, autoPlay]);
 
+  // Принудительный запуск видео заставки после загрузки
+  useEffect(() => {
+    if (showOverlay && overlayType === 'video' && overlayVideo) {
+      // Небольшая задержка для того, чтобы видео элемент был в DOM
+      const timer = setTimeout(() => {
+        const overlayVideoElement = document.querySelector('.stream-player video[src*="data:video"]');
+        if (overlayVideoElement) {
+          console.log('[StreamPlayer] Принудительно запускаю видео заставку');
+          overlayVideoElement.play().catch(err => {
+            console.log('[StreamPlayer] Не удалось запустить видео заставку (ожидаемо для мобильных):', err);
+          });
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showOverlay, overlayType, overlayVideo]);
+
   // Удаляем overlay с ID и логотипом из DOM при монтировании и обновлении
   useEffect(() => {
     const removeOverlay = () => {
