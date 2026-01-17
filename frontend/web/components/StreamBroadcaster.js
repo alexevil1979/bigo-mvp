@@ -63,6 +63,7 @@ export default function StreamBroadcaster({ stream, user }) {
               setShowOverlay(overlay.showOverlay || false);
               
               // Если видео заставка включена, переключаемся на неё после загрузки
+              // ВАЖНО: делаем это ДО того, как начнем принимать новых зрителей
               if (overlay.showOverlay && overlay.overlayType === 'video' && overlayVideoUrl) {
                 // Устанавливаем src для скрытого video элемента
                 if (overlayVideoRef.current) {
@@ -76,12 +77,14 @@ export default function StreamBroadcaster({ stream, user }) {
                     setTimeout(async () => {
                       if (localStreamRef.current) {
                         await switchToOverlayVideo();
+                        console.log('[StreamBroadcaster] ✅ Переключено на заставку после восстановления из БД');
                       } else {
                         // Если потока еще нет, переключимся после его создания
                         const checkAndSwitch = setInterval(async () => {
                           if (localStreamRef.current) {
                             clearInterval(checkAndSwitch);
                             await switchToOverlayVideo();
+                            console.log('[StreamBroadcaster] ✅ Переключено на заставку после создания потока');
                           }
                         }, 100);
                         // Таймаут на случай, если поток не создастся
