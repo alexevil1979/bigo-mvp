@@ -97,6 +97,28 @@ export default function StreamBroadcaster({ stream, user }) {
       if (!socketRef.current) {
         const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
         socketRef.current = socket;
+        
+        // Логируем подключение и переподключение
+        socket.on('connect', () => {
+          console.log('[StreamBroadcaster] Socket подключен:', socket.id);
+        });
+        
+        socket.on('disconnect', (reason) => {
+          console.warn('[StreamBroadcaster] Socket отключен:', reason);
+        });
+        
+        socket.on('reconnect', (attemptNumber) => {
+          console.log('[StreamBroadcaster] Socket переподключен, попытка:', attemptNumber);
+          // При переподключении нужно снова отправить join-stream
+          if (stream?._id && user?.id) {
+            console.log('[StreamBroadcaster] Отправляю join-stream после переподключения');
+            socket.emit('join-stream', {
+              streamId: stream._id,
+              userId: user.id,
+              isStreamer: true
+            });
+          }
+        });
 
         socket.on('viewer-joined', async (data) => {
           console.log('Новый зритель присоединился:', data.viewerId);
