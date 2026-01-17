@@ -931,6 +931,7 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
             console.log('[StreamPlayer] Видео играет');
           }}
         />
+        {/* Overlay только для изображений - видео заставка уже в основном потоке */}
         {showOverlay && overlayType === 'image' && overlayImage && (
           <div style={{
             position: 'absolute',
@@ -945,130 +946,9 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
             zIndex: 10
           }} />
         )}
-        {showOverlay && overlayType === 'video' && overlayVideo && (
-          <video
-            key={`overlay-video-${overlayVideo.substring(0, 50)}`}
-            ref={(el) => {
-              if (el) {
-                console.log('[StreamPlayer] Видео заставки элемент создан, src длина:', overlayVideo.length);
-                // Убеждаемся, что видео запускается после загрузки
-                const tryPlay = () => {
-                  if (el.readyState >= 2) {
-                    el.play().catch(err => {
-                      console.log('[StreamPlayer] Ошибка автоплея видео заставки (ожидаемо):', err);
-                    });
-                  } else {
-                    // Ждем загрузки метаданных
-                    el.addEventListener('loadedmetadata', () => {
-                      el.play().catch(err => {
-                        console.log('[StreamPlayer] Ошибка автоплея видео заставки после загрузки (ожидаемо):', err);
-                      });
-                    }, { once: true });
-                  }
-                };
-                
-                // Пробуем сразу
-                tryPlay();
-                
-                // Также пробуем после загрузки данных
-                el.addEventListener('loadeddata', tryPlay, { once: true });
-                el.addEventListener('canplay', tryPlay, { once: true });
-              }
-            }}
-            src={overlayVideo}
-            autoPlay
-            loop
-            muted
-            playsInline
-            onLoadedMetadata={() => {
-              console.log('[StreamPlayer] Видео заставки - метаданные загружены');
-            }}
-            onLoadedData={() => {
-              console.log('[StreamPlayer] Видео заставки - данные загружены');
-            }}
-            onCanPlay={() => {
-              console.log('[StreamPlayer] Видео заставки - готово к воспроизведению');
-            }}
-            onPlay={() => {
-              console.log('[StreamPlayer] Видео заставки запущено');
-            }}
-            onError={(e) => {
-              console.error('[StreamPlayer] Ошибка загрузки видео заставки:', e);
-              const error = e.target.error;
-              if (error) {
-                console.error('[StreamPlayer] Код ошибки видео заставки:', error.code, 'Сообщение:', error.message);
-              }
-            }}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              pointerEvents: 'none',
-              zIndex: 10,
-              opacity: 0.7,
-              mixBlendMode: 'screen'
-            }}
-          />
-        )}
       </div>
       {!isConnected && <div className="loading">Подключение к стриму...</div>}
       
-      {/* Отдельный проигрыватель для видео заставки */}
-      {showOverlay && overlayType === 'video' && overlayVideo && (
-        <div style={{
-          marginTop: '20px',
-          width: '100%',
-          maxWidth: '640px',
-          margin: '20px auto 0',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-          background: '#000'
-        }}>
-          <div style={{
-            padding: '10px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: '#fff',
-            fontSize: '14px',
-            fontWeight: '600',
-            textAlign: 'center'
-          }}>
-            🎬 Видео заставка стримера
-          </div>
-          <video
-            key={`overlay-video-player-${overlayVideo.substring(0, 50)}`}
-            src={overlayVideo}
-            autoPlay
-            loop
-            muted
-            playsInline
-            controls={false}
-            style={{
-              width: '100%',
-              height: 'auto',
-              display: 'block'
-            }}
-            onLoadedMetadata={() => {
-              console.log('[StreamPlayer] Видео заставки в отдельном проигрывателе - метаданные загружены');
-            }}
-            onLoadedData={() => {
-              console.log('[StreamPlayer] Видео заставки в отдельном проигрывателе - данные загружены');
-            }}
-            onCanPlay={() => {
-              console.log('[StreamPlayer] Видео заставки в отдельном проигрывателе - готово к воспроизведению');
-            }}
-            onPlay={() => {
-              console.log('[StreamPlayer] Видео заставки в отдельном проигрывателе запущено');
-            }}
-            onError={(e) => {
-              console.error('[StreamPlayer] Ошибка загрузки видео заставки в отдельном проигрывателе:', e);
-            }}
-          />
-        </div>
-      )}
     </div>
   );
 }
