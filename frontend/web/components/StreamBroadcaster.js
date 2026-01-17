@@ -130,18 +130,39 @@ export default function StreamBroadcaster({ stream, user }) {
         });
       }
 
-      console.log('[StreamBroadcaster] Отправляю join-stream:', {
-        streamId: stream._id,
-        userId: user.id,
-        isStreamer: true,
-        socketConnected: socketRef.current.connected
-      });
+      // Ждем подключения socket перед отправкой join-stream
+      const sendJoinStream = () => {
+        if (socketRef.current && socketRef.current.connected && stream?._id && user?.id) {
+          console.log('[StreamBroadcaster] Socket подключен, отправляю join-stream:', {
+            streamId: stream._id,
+            userId: user.id,
+            isStreamer: true,
+            socketConnected: socketRef.current.connected
+          });
+          
+          socketRef.current.emit('join-stream', {
+            streamId: stream._id,
+            userId: user.id,
+            isStreamer: true
+          });
+        } else {
+          console.warn('[StreamBroadcaster] Не могу отправить join-stream:', {
+            hasSocket: !!socketRef.current,
+            socketConnected: socketRef.current?.connected,
+            hasStream: !!stream?._id,
+            hasUser: !!user?.id
+          });
+        }
+      };
       
-      socketRef.current.emit('join-stream', {
-        streamId: stream._id,
-        userId: user.id,
-        isStreamer: true
-      });
+      if (socketRef.current) {
+        if (socketRef.current.connected) {
+          sendJoinStream();
+        } else {
+          console.log('[StreamBroadcaster] Socket не подключен, ждем события connect');
+          socketRef.current.once('connect', sendJoinStream);
+        }
+      }
 
       socketRef.current.emit('join-stream-chat', {
         streamId: stream._id,
