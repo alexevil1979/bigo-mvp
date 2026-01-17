@@ -253,12 +253,25 @@ export default function OverlaySelector({ onOverlayChange, onContinue, streamId 
 
       {overlayImage && (
         <div className="overlay-preview">
-          <img src={overlayImage} alt="Overlay preview" />
+          <img 
+            src={overlayImage.startsWith('/uploads/') 
+              ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${overlayImage}` 
+              : overlayImage} 
+            alt="Overlay preview" 
+          />
         </div>
       )}
       {overlayVideo && (
         <div className="overlay-preview">
-          <video src={overlayVideo} autoPlay loop muted style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', border: '2px solid #333' }} />
+          <video 
+            src={overlayVideo.startsWith('/uploads/') 
+              ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${overlayVideo}` 
+              : overlayVideo} 
+            autoPlay 
+            loop 
+            muted 
+            style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', border: '2px solid #333' }} 
+          />
         </div>
       )}
 

@@ -32,45 +32,58 @@ export default function StreamBroadcaster({ stream, user }) {
 
   useEffect(() => {
     if (stream) {
-      // Восстанавливаем состояние заставки из sessionStorage
-      const savedOverlay = sessionStorage.getItem(`overlay-${stream._id}`);
-      if (savedOverlay) {
+      // Восстанавливаем состояние заставки из базы данных
+      const restoreOverlay = async () => {
         try {
-          const overlayData = JSON.parse(savedOverlay);
-          console.log('[StreamBroadcaster] Восстанавливаем заставку из sessionStorage:', overlayData);
-          setOverlayImage(overlayData.overlayImage || null);
-          setOverlayVideo(overlayData.overlayVideo || null);
-          setOverlayType(overlayData.overlayType || null);
-          setShowOverlay(overlayData.showOverlay || false);
+          console.log('[StreamBroadcaster] Загружаем состояние заставки из БД для стрима:', stream._id);
           
-          // Если заставка была включена, отправляем событие после подключения socket
-          if (overlayData.showOverlay && overlayData.overlayType) {
-            const overlay = overlayData.overlayType === 'video' ? overlayData.overlayVideo : overlayData.overlayImage;
-            if (overlay) {
-              // Ждем подключения socket перед отправкой
-              const sendRestoredOverlay = () => {
-                if (socketRef.current && socketRef.current.connected && stream?._id) {
-                  console.log('[StreamBroadcaster] Отправляем восстановленную заставку');
-                  const overlayDataToSend = {
-                    streamId: stream._id,
-                    overlayImage: overlayData.overlayType === 'image' && overlayData.showOverlay ? overlayData.overlayImage : null,
-                    overlayVideo: overlayData.overlayType === 'video' && overlayData.showOverlay ? overlayData.overlayVideo : null,
-                    overlayType: overlayData.showOverlay ? overlayData.overlayType : null,
-                    enabled: overlayData.showOverlay
-                  };
-                  socketRef.current.emit('stream-overlay-changed', overlayDataToSend);
-                } else {
-                  setTimeout(sendRestoredOverlay, 100);
-                }
-              };
-              setTimeout(sendRestoredOverlay, 500);
+          const token = localStorage.getItem('token');
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams/${stream._id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.overlay) {
+              const overlay = data.overlay;
+              console.log('[StreamBroadcaster] Заставка из БД:', overlay);
+              
+              // Формируем полные URL для заставок
+              const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+              setOverlayImage(overlay.overlayImagePath ? `${apiUrl}${overlay.overlayImagePath}` : null);
+              setOverlayVideo(overlay.overlayVideoPath ? `${apiUrl}${overlay.overlayVideoPath}` : null);
+              setOverlayType(overlay.overlayType || null);
+              setShowOverlay(overlay.showOverlay || false);
+              
+              // Если заставка была включена, отправляем событие после подключения socket
+              if (overlay.showOverlay && overlay.overlayType) {
+                const sendRestoredOverlay = () => {
+                  if (socketRef.current && socketRef.current.connected && stream?._id) {
+                    console.log('[StreamBroadcaster] Отправляем восстановленную заставку из БД');
+                    const overlayDataToSend = {
+                      streamId: stream._id,
+                      overlayImagePath: overlay.overlayImagePath || null,
+                      overlayVideoPath: overlay.overlayVideoPath || null,
+                      overlayType: overlay.overlayType,
+                      enabled: overlay.showOverlay
+                    };
+                    socketRef.current.emit('stream-overlay-changed', overlayDataToSend);
+                  } else {
+                    setTimeout(sendRestoredOverlay, 100);
+                  }
+                };
+                setTimeout(sendRestoredOverlay, 500);
+              }
             }
           }
         } catch (error) {
-          console.error('[StreamBroadcaster] Ошибка восстановления заставки из sessionStorage:', error);
+          console.error('[StreamBroadcaster] Ошибка загрузки заставки из БД:', error);
         }
-      }
+      };
       
+      restoreOverlay();
       startStreaming();
     }
 
