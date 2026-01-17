@@ -36,6 +36,13 @@ const initialize = (socketIo) => {
       socket.isStreamer = isStreamer;
       
       console.log(`[webrtcService] Socket ${socket.id} присоединен к стриму ${streamId}, isStreamer=${isStreamer}`);
+      
+      // Отправляем подтверждение клиенту
+      socket.emit('join-stream-confirmed', {
+        streamId,
+        isStreamer,
+        socketId: socket.id
+      });
 
       if (isStreamer) {
         console.log(`📹 Стример ${userId} начал стрим ${streamId}`);

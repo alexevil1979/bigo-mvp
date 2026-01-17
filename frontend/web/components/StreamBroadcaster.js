@@ -103,6 +103,11 @@ export default function StreamBroadcaster({ stream, user }) {
           console.log('[StreamBroadcaster] Socket подключен:', socket.id);
         });
         
+        // Слушаем подтверждение join-stream
+        socket.on('join-stream-confirmed', (data) => {
+          console.log('[StreamBroadcaster] ✅ Подтверждение join-stream получено:', data);
+        });
+        
         socket.on('disconnect', (reason) => {
           console.warn('[StreamBroadcaster] Socket отключен:', reason);
         });
