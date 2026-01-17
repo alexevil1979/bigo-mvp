@@ -684,7 +684,134 @@ export default function StreamBroadcaster({ stream, user }) {
     }
   };
 
-  const handleOverlayChange = (overlay, enabled, type) => {
+  // Функция для переключения на видео заставку
+  const switchToOverlayVideo = async () => {
+    if (!overlayVideo || !overlayVideoRef.current) {
+      console.error('[StreamBroadcaster] Нет видео заставки или video элемента');
+      return;
+    }
+
+    try {
+      const video = overlayVideoRef.current;
+      
+      // Ждем загрузки видео
+      await new Promise((resolve, reject) => {
+        if (video.readyState >= 2) {
+          resolve();
+        } else {
+          video.onloadeddata = resolve;
+          video.onerror = reject;
+          setTimeout(reject, 5000); // Таймаут 5 секунд
+        }
+      });
+
+      // Создаем поток из video элемента
+      const overlayStream = video.captureStream ? video.captureStream() : null;
+      
+      if (!overlayStream) {
+        console.error('[StreamBroadcaster] captureStream не поддерживается');
+        return;
+      }
+
+      // Если есть аудио трек с камеры, добавляем его к потоку заставки
+      if (cameraStreamRef.current) {
+        const audioTrack = cameraStreamRef.current.getAudioTracks()[0];
+        if (audioTrack) {
+          overlayStream.addTrack(audioTrack);
+        }
+      } else {
+        // Если камеры нет, пытаемся получить только аудио
+        try {
+          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          const audioTrack = audioStream.getAudioTracks()[0];
+          if (audioTrack) {
+            overlayStream.addTrack(audioTrack);
+          }
+        } catch (error) {
+          console.warn('[StreamBroadcaster] Не удалось получить аудио:', error);
+        }
+      }
+
+      // Заменяем треки во всех существующих peer connections
+      const videoTrack = overlayStream.getVideoTracks()[0];
+      if (videoTrack) {
+        Object.values(peerConnectionsRef.current).forEach(pc => {
+          const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender) {
+            sender.replaceTrack(videoTrack).catch(err => {
+              console.error('[StreamBroadcaster] Ошибка замены видео трека:', err);
+            });
+          }
+        });
+      }
+
+      // Обновляем локальный поток
+      const oldStream = localStreamRef.current;
+      localStreamRef.current = overlayStream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = overlayStream;
+      }
+
+      // Останавливаем старые треки (кроме аудио, если оно используется)
+      if (oldStream && oldStream !== cameraStreamRef.current) {
+        oldStream.getVideoTracks().forEach(track => track.stop());
+      }
+
+      console.log('[StreamBroadcaster] Переключено на видео заставку');
+    } catch (error) {
+      console.error('[StreamBroadcaster] Ошибка переключения на видео заставку:', error);
+    }
+  };
+
+  // Функция для переключения обратно на камеру
+  const switchToCamera = async () => {
+    if (!cameraStreamRef.current) {
+      // Если камеры нет, получаем её заново
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        cameraStreamRef.current = mediaStream;
+      } catch (error) {
+        console.error('[StreamBroadcaster] Не удалось получить камеру:', error);
+        return;
+      }
+    }
+
+    const cameraStream = cameraStreamRef.current;
+    const videoTrack = cameraStream.getVideoTracks()[0];
+    
+    if (videoTrack) {
+      // Заменяем треки во всех существующих peer connections
+      Object.values(peerConnectionsRef.current).forEach(pc => {
+        const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+        if (sender) {
+          sender.replaceTrack(videoTrack).catch(err => {
+            console.error('[StreamBroadcaster] Ошибка замены видео трека:', err);
+          });
+        }
+      });
+    }
+
+    // Обновляем локальный поток
+    const oldStream = localStreamRef.current;
+    localStreamRef.current = cameraStream;
+    
+    if (videoRef.current) {
+      videoRef.current.srcObject = cameraStream;
+    }
+
+    // Останавливаем старые треки (кроме аудио, если оно используется)
+    if (oldStream && oldStream !== cameraStream) {
+      oldStream.getVideoTracks().forEach(track => track.stop());
+    }
+
+    console.log('[StreamBroadcaster] Переключено обратно на камеру');
+  };
+
+  const handleOverlayChange = async (overlay, enabled, type) => {
     console.log('[StreamBroadcaster] handleOverlayChange вызван:', {
       hasOverlay: !!overlay,
       overlayType: typeof overlay,
@@ -703,12 +830,36 @@ export default function StreamBroadcaster({ stream, user }) {
     if (type === 'image') {
       setOverlayImage(overlayUrl);
       setOverlayVideo(null);
+      // Для изображения переключаемся обратно на камеру
+      if (enabled && localStreamRef.current) {
+        await switchToCamera();
+      }
     } else if (type === 'video') {
       setOverlayVideo(overlayUrl);
       setOverlayImage(null);
+      // Для видео переключаемся на заставку или обратно на камеру
+      if (enabled && overlayUrl && localStreamRef.current) {
+        // Устанавливаем src для скрытого video элемента
+        if (overlayVideoRef.current) {
+          overlayVideoRef.current.src = overlayUrl;
+          overlayVideoRef.current.load();
+          // Небольшая задержка для загрузки видео
+          overlayVideoRef.current.onloadeddata = async () => {
+            setTimeout(async () => {
+              await switchToOverlayVideo();
+            }, 500);
+          };
+        }
+      } else if (!enabled && localStreamRef.current) {
+        await switchToCamera();
+      }
     } else {
       setOverlayImage(null);
       setOverlayVideo(null);
+      // Если заставка отключена, переключаемся обратно на камеру
+      if (localStreamRef.current) {
+        await switchToCamera();
+      }
     }
     setOverlayType(type);
     setShowOverlay(enabled);
@@ -870,6 +1021,16 @@ export default function StreamBroadcaster({ stream, user }) {
       {/* Основной контент */}
       <div className="stream-main-content">
         <div className="stream-video-section">
+          {/* Скрытый video элемент для видео заставки */}
+          {overlayVideo && (
+            <video
+              ref={overlayVideoRef}
+              style={{ display: 'none' }}
+              loop
+              muted
+              playsInline
+            />
+          )}
           <div className="video-wrapper">
             <video
               ref={videoRef}
