@@ -627,6 +627,10 @@ export default function StreamBroadcaster({ stream, user }) {
     // Очищаем sessionStorage при завершении стрима
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('activeStream');
+      // Удаляем сохраненную заставку
+      if (stream?._id) {
+        sessionStorage.removeItem(`overlay-${stream._id}`);
+      }
     }
     
     router.push('/');
