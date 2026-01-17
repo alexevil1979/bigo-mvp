@@ -6,6 +6,7 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
   const videoRef = useRef(null);
   const socketRef = useRef(null);
   const peerConnectionRef = useRef(null);
+  const statsIntervalRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState('');
   const [overlayImage, setOverlayImage] = useState(null);
