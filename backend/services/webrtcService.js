@@ -148,25 +148,51 @@ const initialize = (socketIo) => {
     socket.on('stream-overlay-changed', (data) => {
       const { streamId, overlayImage, overlayVideo, overlayType, enabled } = data;
       
+      console.log(`[webrtcService] Получено событие stream-overlay-changed:`, {
+        streamId,
+        overlayType,
+        enabled,
+        hasImage: !!overlayImage,
+        hasVideo: !!overlayVideo,
+        imageLength: overlayImage ? overlayImage.length : 0,
+        videoLength: overlayVideo ? overlayVideo.length : 0,
+        socketId: socket.id,
+        isStreamer: socket.isStreamer
+      });
+      
       // Проверяем, что это стример
       if (socket.isStreamer && streamId) {
-        // Транслируем событие всем зрителям стрима в комнате WebRTC
-        socket.to(`webrtc-${streamId}`).emit('stream-overlay-changed', {
-          streamId,
-          overlayImage,
-          overlayVideo,
-          overlayType,
-          enabled
+        const webrtcRoom = `webrtc-${streamId}`;
+        const streamRoom = `stream-${streamId}`;
+        
+        // Получаем количество зрителей в комнатах
+        io.in(webrtcRoom).fetchSockets().then(webrtcSockets => {
+          io.in(streamRoom).fetchSockets().then(streamSockets => {
+            console.log(`[webrtcService] Отправляем заставку в комнату ${webrtcRoom}: ${webrtcSockets.length} сокетов`);
+            console.log(`[webrtcService] Отправляем заставку в комнату ${streamRoom}: ${streamSockets.length} сокетов`);
+            
+            // Транслируем событие всем зрителям стрима в комнате WebRTC
+            socket.to(webrtcRoom).emit('stream-overlay-changed', {
+              streamId,
+              overlayImage,
+              overlayVideo,
+              overlayType,
+              enabled
+            });
+            // Также отправляем в комнату чата на случай, если зрители там
+            io.to(streamRoom).emit('stream-overlay-changed', {
+              streamId,
+              overlayImage,
+              overlayVideo,
+              overlayType,
+              enabled
+            });
+            
+            console.log(`[webrtcService] 🎨 Заставка стрима ${streamId} (${overlayType}) ${enabled ? 'включена' : 'отключена'}, отправлено зрителям`);
+          });
         });
-        // Также отправляем в комнату чата на случай, если зрители там
-        io.to(`stream-${streamId}`).emit('stream-overlay-changed', {
-          streamId,
-          overlayImage,
-          overlayVideo,
-          overlayType,
-          enabled
-        });
-        console.log(`🎨 Заставка стрима ${streamId} (${overlayType}) ${enabled ? 'включена' : 'отключена'}`);
+      } else {
+        console.warn(`[webrtcService] Заставка от не-стримера или без streamId: isStreamer=${socket.isStreamer}, streamId=${streamId}`);
       }
     });
 
