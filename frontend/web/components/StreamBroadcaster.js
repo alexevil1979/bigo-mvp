@@ -108,32 +108,43 @@ export default function StreamBroadcaster({ stream, user }) {
         });
         
         socket.on('reconnect', (attemptNumber) => {
-          console.log('[StreamBroadcaster] Socket переподключен, попытка:', attemptNumber);
+          console.log('[StreamBroadcaster] Socket переподключен, попытка:', attemptNumber, 'socket.id:', socket.id);
           // При переподключении нужно снова отправить join-stream и другие события
-          if (stream?._id && user?.id) {
-            console.log('[StreamBroadcaster] Отправляю join-stream после переподключения:', {
-              streamId: stream._id,
-              userId: user.id,
-              isStreamer: true
-            });
-            socket.emit('join-stream', {
-              streamId: stream._id,
-              userId: user.id,
-              isStreamer: true
-            });
-            
-            // Также отправляем join-stream-chat
-            socket.emit('join-stream-chat', {
-              streamId: stream._id,
-              userId: user.id,
-              nickname: user.nickname
-            });
-            
-            // Отправляем heartbeat сразу
-            socket.emit('stream-heartbeat', {
-              streamId: stream._id
-            });
-          }
+          // Используем setTimeout чтобы убедиться, что socket полностью подключен
+          setTimeout(() => {
+            if (stream?._id && user?.id && socket.connected) {
+              console.log('[StreamBroadcaster] Отправляю join-stream после переподключения:', {
+                streamId: stream._id,
+                userId: user.id,
+                isStreamer: true,
+                socketConnected: socket.connected,
+                socketId: socket.id
+              });
+              socket.emit('join-stream', {
+                streamId: stream._id,
+                userId: user.id,
+                isStreamer: true
+              });
+              
+              // Также отправляем join-stream-chat
+              socket.emit('join-stream-chat', {
+                streamId: stream._id,
+                userId: user.id,
+                nickname: user.nickname
+              });
+              
+              // Отправляем heartbeat сразу
+              socket.emit('stream-heartbeat', {
+                streamId: stream._id
+              });
+            } else {
+              console.warn('[StreamBroadcaster] Не могу отправить join-stream после переподключения:', {
+                hasStream: !!stream?._id,
+                hasUser: !!user?.id,
+                socketConnected: socket.connected
+              });
+            }
+          }, 100);
         });
 
         socket.on('viewer-joined', async (data) => {
@@ -175,14 +186,34 @@ export default function StreamBroadcaster({ stream, user }) {
             streamId: stream._id,
             userId: user.id,
             isStreamer: true,
-            socketConnected: socketRef.current.connected
+            socketConnected: socketRef.current.connected,
+            socketId: socketRef.current.id
           });
           
-          socketRef.current.emit('join-stream', {
-            streamId: stream._id,
-            userId: user.id,
-            isStreamer: true
-          });
+          // Используем небольшой таймаут чтобы убедиться, что socket полностью готов
+          setTimeout(() => {
+            if (socketRef.current && socketRef.current.connected) {
+              console.log('[StreamBroadcaster] Отправляю join-stream (после таймаута):', {
+                streamId: stream._id,
+                userId: user.id,
+                socketId: socketRef.current.id
+              });
+              
+              socketRef.current.emit('join-stream', {
+                streamId: stream._id,
+                userId: user.id,
+                isStreamer: true
+              });
+              
+              // Проверяем через секунду, был ли обработан join-stream
+              setTimeout(() => {
+                console.log('[StreamBroadcaster] Проверка после отправки join-stream:', {
+                  socketId: socketRef.current?.id,
+                  socketConnected: socketRef.current?.connected
+                });
+              }, 1000);
+            }
+          }, 100);
         } else {
           console.warn('[StreamBroadcaster] Не могу отправить join-stream:', {
             hasSocket: !!socketRef.current,
@@ -198,7 +229,10 @@ export default function StreamBroadcaster({ stream, user }) {
           sendJoinStream();
         } else {
           console.log('[StreamBroadcaster] Socket не подключен, ждем события connect');
-          socketRef.current.once('connect', sendJoinStream);
+          socketRef.current.once('connect', () => {
+            console.log('[StreamBroadcaster] Событие connect получено, отправляю join-stream');
+            sendJoinStream();
+          });
         }
       }
 
