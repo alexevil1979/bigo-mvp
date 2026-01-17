@@ -604,6 +604,15 @@ export default function StreamBroadcaster({ stream, user }) {
   };
 
   const handleOverlayChange = (overlay, enabled, type) => {
+    console.log('[StreamBroadcaster] handleOverlayChange вызван:', {
+      hasOverlay: !!overlay,
+      overlayType: typeof overlay,
+      overlayLength: overlay ? overlay.length : 0,
+      enabled,
+      type,
+      socketConnected: socketRef.current?.connected
+    });
+    
     if (type === 'image') {
       setOverlayImage(overlay);
       setOverlayVideo(null);
