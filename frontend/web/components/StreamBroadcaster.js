@@ -486,7 +486,27 @@ export default function StreamBroadcaster({ stream, user }) {
     setShowOverlay(enabled);
     
     // Отправляем информацию о заставке всем зрителям через socket
-    if (socketRef.current && stream?._id && socketRef.current.connected) {
+    if (socketRef.current && stream?._id) {
+      if (!socketRef.current.connected) {
+        console.warn('[StreamBroadcaster] Socket не подключен, ждем подключения перед отправкой заставки');
+        socketRef.current.once('connect', () => {
+          console.log('[StreamBroadcaster] Socket подключился, отправляю заставку');
+          sendOverlayEvent();
+        });
+        return;
+      }
+      
+      sendOverlayEvent();
+    } else {
+      console.warn('[StreamBroadcaster] Socket или stream отсутствует, не могу отправить событие заставки');
+    }
+    
+    function sendOverlayEvent() {
+      if (!socketRef.current || !socketRef.current.connected || !stream?._id) {
+        console.warn('[StreamBroadcaster] Не могу отправить заставку: socket не готов');
+        return;
+      }
+      
       // Для видео проверяем размер - если слишком большой, предупреждаем
       if (type === 'video' && enabled && overlay) {
         const base64Length = overlay.length;
@@ -516,8 +536,6 @@ export default function StreamBroadcaster({ stream, user }) {
       });
       
       socketRef.current.emit('stream-overlay-changed', overlayData);
-    } else if (!socketRef.current?.connected) {
-      console.warn('Socket не подключен, не могу отправить событие заставки');
     }
   };
 
