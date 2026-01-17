@@ -512,12 +512,40 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
 
     const handleWaiting = () => {
       console.log('[StreamPlayer] Видео буферизуется');
+      // Если видео долго буферизуется, показываем предупреждение
+      const timeout = setTimeout(() => {
+        if (videoElement.paused) {
+          console.log('[StreamPlayer] Видео долго буферизуется, возможно проблема с соединением');
+          setError('Видео буферизуется... Проверьте соединение');
+        }
+      }, 5000);
+      
+      // Очищаем таймаут при переходе в playing
+      const clearOnPlaying = () => {
+        clearTimeout(timeout);
+        videoElement.removeEventListener('playing', clearOnPlaying);
+      };
+      videoElement.addEventListener('playing', clearOnPlaying);
     };
 
     const handlePlaying = () => {
-      console.log('[StreamPlayer] Видео играет');
+      console.log('[StreamPlayer] Видео играет - подтверждено событием playing');
       setIsConnected(true);
       setError('');
+    };
+    
+    const handleStalled = () => {
+      console.log('[StreamPlayer] Видео остановилось (stalled)');
+      setError('Видео остановилось. Проверьте соединение');
+    };
+    
+    const handleError = (e) => {
+      console.error('[StreamPlayer] Ошибка видео элемента:', e);
+      const error = videoElement.error;
+      if (error) {
+        console.error('[StreamPlayer] Код ошибки:', error.code, 'Сообщение:', error.message);
+        setError('Ошибка воспроизведения видео');
+      }
     };
 
     videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
@@ -526,6 +554,8 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
     videoElement.addEventListener('play', handlePlay);
     videoElement.addEventListener('waiting', handleWaiting);
     videoElement.addEventListener('playing', handlePlaying);
+    videoElement.addEventListener('stalled', handleStalled);
+    videoElement.addEventListener('error', handleError);
 
     // Пробуем запустить сразу, если метаданные уже загружены
     if (videoElement.srcObject) {
@@ -539,6 +569,8 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
       videoElement.removeEventListener('play', handlePlay);
       videoElement.removeEventListener('waiting', handleWaiting);
       videoElement.removeEventListener('playing', handlePlaying);
+      videoElement.removeEventListener('stalled', handleStalled);
+      videoElement.removeEventListener('error', handleError);
     };
   }, [isConnected, autoPlay]);
 
