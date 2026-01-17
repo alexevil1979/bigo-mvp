@@ -31,11 +31,13 @@ const initialize = (socketIo) => {
       });
 
       socket.join(`webrtc-${streamId}`);
+      socket.join(`stream-${streamId}`); // Также присоединяем к комнате stream для получения заставок
       socket.streamId = streamId;
       socket.userId = userId;
       socket.isStreamer = isStreamer;
       
       console.log(`[webrtcService] Socket ${socket.id} присоединен к стриму ${streamId}, isStreamer=${isStreamer}`);
+      console.log(`[webrtcService] Socket ${socket.id} присоединен к комнатам: webrtc-${streamId}, stream-${streamId}`);
       
       // Отправляем подтверждение клиенту
       socket.emit('join-stream-confirmed', {

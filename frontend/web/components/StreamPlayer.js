@@ -496,16 +496,21 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
         // Слушаем изменения заставки от стримера
         const overlayHandler = (data) => {
           try {
-            console.log('[StreamPlayer] Получено событие заставки:', {
+            console.log('[StreamPlayer] ⚡ Получено событие заставки:', {
               streamId: data.streamId,
+              currentStreamId: stream._id,
+              streamIdsMatch: data.streamId === stream._id,
               overlayType: data.overlayType,
               enabled: data.enabled,
               hasImage: !!data.overlayImage,
               hasVideo: !!data.overlayVideo,
+              imageLength: data.overlayImage ? data.overlayImage.length : 0,
               videoLength: data.overlayVideo ? data.overlayVideo.length : 0
             });
             
             if (data.streamId === stream._id) {
+              console.log('[StreamPlayer] ✅ StreamId совпадает, применяем заставку');
+              
               // Проверяем размер видео заставки
               if (data.overlayType === 'video' && data.enabled && data.overlayVideo) {
                 const base64Length = data.overlayVideo.length;
@@ -519,22 +524,35 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
               }
               
               // Безопасно устанавливаем заставку
+              console.log('[StreamPlayer] Устанавливаем заставку:', {
+                overlayType: data.overlayType,
+                enabled: data.enabled,
+                hasImage: !!data.overlayImage,
+                hasVideo: !!data.overlayVideo
+              });
+              
               setOverlayImage(data.overlayImage || null);
               setOverlayVideo(data.overlayVideo || null);
               setOverlayType(data.overlayType || null);
               setShowOverlay(data.enabled);
               
-              console.log('[StreamPlayer] Заставка применена:', {
+              console.log('[StreamPlayer] ✅ Заставка применена:', {
                 type: data.overlayType,
                 enabled: data.enabled,
                 showOverlay: data.enabled
               });
+            } else {
+              console.warn('[StreamPlayer] ⚠️ StreamId не совпадает, игнорируем заставку:', {
+                receivedStreamId: data.streamId,
+                currentStreamId: stream._id
+              });
             }
           } catch (error) {
-            console.error('[StreamPlayer] Ошибка обработки заставки:', error);
+            console.error('[StreamPlayer] ❌ Ошибка обработки заставки:', error);
             // Не прерываем стрим из-за ошибки заставки
           }
         };
+        console.log('[StreamPlayer] Регистрируем обработчик stream-overlay-changed для стрима:', stream._id);
         socket.on('stream-overlay-changed', overlayHandler);
 
         setIsConnected(true);
