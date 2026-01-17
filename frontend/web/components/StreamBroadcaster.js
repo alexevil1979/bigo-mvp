@@ -175,6 +175,8 @@ export default function StreamBroadcaster({ stream, user }) {
           audio: true
         });
         localStreamRef.current = mediaStream;
+        // Сохраняем оригинальный поток с камеры
+        cameraStreamRef.current = mediaStream;
       }
       
       if (videoRef.current && localStreamRef.current) {

@@ -571,14 +571,12 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
                 hasVideo: !!overlayVideoUrl
               });
               
-              // Если видео заставка уже в основном потоке (isInMainStream), не показываем overlay
-              // Иначе показываем overlay поверх потока
-              const shouldShowOverlay = data.enabled && !data.isInMainStream;
-              
+              // Всегда показываем overlay, если заставка включена
+              // (видео заставка уже в основном потоке через replaceTrack, но overlay нужен для совместимости)
               setOverlayImage(overlayImageUrl);
               setOverlayVideo(overlayVideoUrl);
               setOverlayType(data.overlayType || null);
-              setShowOverlay(shouldShowOverlay);
+              setShowOverlay(data.enabled);
               
               console.log('[StreamPlayer] ✅ Заставка применена:', {
                 type: data.overlayType,
