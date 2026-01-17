@@ -109,13 +109,29 @@ export default function StreamBroadcaster({ stream, user }) {
         
         socket.on('reconnect', (attemptNumber) => {
           console.log('[StreamBroadcaster] Socket переподключен, попытка:', attemptNumber);
-          // При переподключении нужно снова отправить join-stream
+          // При переподключении нужно снова отправить join-stream и другие события
           if (stream?._id && user?.id) {
-            console.log('[StreamBroadcaster] Отправляю join-stream после переподключения');
+            console.log('[StreamBroadcaster] Отправляю join-stream после переподключения:', {
+              streamId: stream._id,
+              userId: user.id,
+              isStreamer: true
+            });
             socket.emit('join-stream', {
               streamId: stream._id,
               userId: user.id,
               isStreamer: true
+            });
+            
+            // Также отправляем join-stream-chat
+            socket.emit('join-stream-chat', {
+              streamId: stream._id,
+              userId: user.id,
+              nickname: user.nickname
+            });
+            
+            // Отправляем heartbeat сразу
+            socket.emit('stream-heartbeat', {
+              streamId: stream._id
             });
           }
         });
