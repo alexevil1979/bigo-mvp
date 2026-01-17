@@ -495,13 +495,23 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
 
         // Слушаем изменения заставки от стримера
         const overlayHandler = (data) => {
-          console.log('Получено событие заставки:', data);
+          console.log('[StreamPlayer] Получено событие заставки:', data);
           if (data.streamId === stream._id) {
-            console.log('Применяю заставку:', { overlayImage: data.overlayImage, overlayVideo: data.overlayVideo, type: data.overlayType, enabled: data.enabled });
+            console.log('[StreamPlayer] Применяю заставку:', { 
+              overlayImage: data.overlayImage ? 'есть (base64)' : 'нет', 
+              overlayVideo: data.overlayVideo ? 'есть (base64, длина: ' + data.overlayVideo.length + ')' : 'нет', 
+              type: data.overlayType, 
+              enabled: data.enabled 
+            });
             setOverlayImage(data.overlayImage || null);
             setOverlayVideo(data.overlayVideo || null);
             setOverlayType(data.overlayType || null);
             setShowOverlay(data.enabled);
+            
+            // Логируем для диагностики
+            if (data.overlayType === 'video' && data.enabled && data.overlayVideo) {
+              console.log('[StreamPlayer] Видео заставка включена, длина base64:', data.overlayVideo.length);
+            }
           }
         };
         socket.on('stream-overlay-changed', overlayHandler);
@@ -872,11 +882,28 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
         )}
         {showOverlay && overlayType === 'video' && overlayVideo && (
           <video
+            ref={(el) => {
+              if (el) {
+                // Убеждаемся, что видео запускается
+                el.play().catch(err => {
+                  console.log('[StreamPlayer] Ошибка автоплея видео заставки (ожидаемо):', err);
+                });
+              }
+            }}
             src={overlayVideo}
             autoPlay
             loop
             muted
             playsInline
+            onLoadedData={() => {
+              console.log('[StreamPlayer] Видео заставки загружено');
+            }}
+            onPlay={() => {
+              console.log('[StreamPlayer] Видео заставки запущено');
+            }}
+            onError={(e) => {
+              console.error('[StreamPlayer] Ошибка загрузки видео заставки:', e);
+            }}
             style={{
               position: 'absolute',
               top: 0,

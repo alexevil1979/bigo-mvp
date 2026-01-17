@@ -572,11 +572,28 @@ export default function StreamBroadcaster({ stream, user }) {
             )}
             {showOverlay && overlayType === 'video' && overlayVideo && (
               <video
+                ref={(el) => {
+                  if (el) {
+                    // Убеждаемся, что видео запускается
+                    el.play().catch(err => {
+                      console.log('[StreamBroadcaster] Ошибка автоплея видео заставки (ожидаемо):', err);
+                    });
+                  }
+                }}
                 src={overlayVideo}
                 autoPlay
                 loop
                 muted
                 playsInline
+                onLoadedData={() => {
+                  console.log('[StreamBroadcaster] Видео заставки загружено');
+                }}
+                onPlay={() => {
+                  console.log('[StreamBroadcaster] Видео заставки запущено');
+                }}
+                onError={(e) => {
+                  console.error('[StreamBroadcaster] Ошибка загрузки видео заставки:', e);
+                }}
                 style={{
                   position: 'absolute',
                   top: 0,
