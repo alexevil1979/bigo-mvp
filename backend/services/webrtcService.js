@@ -17,11 +17,22 @@ const initialize = (socketIo) => {
     // Присоединение к стриму (как стример или зритель)
     socket.on('join-stream', (data) => {
       const { streamId, userId, isStreamer } = data;
+      
+      console.log(`[webrtcService] Получено событие join-stream:`, {
+        streamId,
+        userId,
+        isStreamer,
+        socketId: socket.id,
+        previousIsStreamer: socket.isStreamer,
+        previousStreamId: socket.streamId
+      });
 
       socket.join(`webrtc-${streamId}`);
       socket.streamId = streamId;
       socket.userId = userId;
       socket.isStreamer = isStreamer;
+      
+      console.log(`[webrtcService] Socket ${socket.id} присоединен к стриму ${streamId}, isStreamer=${isStreamer}`);
 
       if (isStreamer) {
         console.log(`📹 Стример ${userId} начал стрим ${streamId}`);
