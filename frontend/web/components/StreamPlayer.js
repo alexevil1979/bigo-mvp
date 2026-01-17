@@ -1016,6 +1016,60 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
         )}
       </div>
       {!isConnected && <div className="loading">Подключение к стриму...</div>}
+      
+      {/* Отдельный проигрыватель для видео заставки */}
+      {showOverlay && overlayType === 'video' && overlayVideo && (
+        <div style={{
+          marginTop: '20px',
+          width: '100%',
+          maxWidth: '640px',
+          margin: '20px auto 0',
+          borderRadius: '8px',
+          overflow: 'hidden',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+          background: '#000'
+        }}>
+          <div style={{
+            padding: '10px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: '#fff',
+            fontSize: '14px',
+            fontWeight: '600',
+            textAlign: 'center'
+          }}>
+            🎬 Видео заставка стримера
+          </div>
+          <video
+            key={`overlay-video-player-${overlayVideo.substring(0, 50)}`}
+            src={overlayVideo}
+            autoPlay
+            loop
+            muted
+            playsInline
+            controls={false}
+            style={{
+              width: '100%',
+              height: 'auto',
+              display: 'block'
+            }}
+            onLoadedMetadata={() => {
+              console.log('[StreamPlayer] Видео заставки в отдельном проигрывателе - метаданные загружены');
+            }}
+            onLoadedData={() => {
+              console.log('[StreamPlayer] Видео заставки в отдельном проигрывателе - данные загружены');
+            }}
+            onCanPlay={() => {
+              console.log('[StreamPlayer] Видео заставки в отдельном проигрывателе - готово к воспроизведению');
+            }}
+            onPlay={() => {
+              console.log('[StreamPlayer] Видео заставки в отдельном проигрывателе запущено');
+            }}
+            onError={(e) => {
+              console.error('[StreamPlayer] Ошибка загрузки видео заставки в отдельном проигрывателе:', e);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
