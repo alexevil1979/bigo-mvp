@@ -101,6 +101,33 @@ export default function StreamBroadcaster({ stream, user }) {
         // Логируем подключение и переподключение
         socket.on('connect', () => {
           console.log('[StreamBroadcaster] Socket подключен:', socket.id);
+          // При каждом подключении (включая переподключение) отправляем join-stream
+          if (stream?._id && user?.id) {
+            console.log('[StreamBroadcaster] Socket подключен, отправляю join-stream (в обработчике connect):', {
+              streamId: stream._id,
+              userId: user.id,
+              isStreamer: true,
+              socketId: socket.id
+            });
+            
+            // Используем небольшой таймаут чтобы убедиться, что socket полностью готов
+            setTimeout(() => {
+              if (socket.connected && stream?._id && user?.id) {
+                socket.emit('join-stream', {
+                  streamId: stream._id,
+                  userId: user.id,
+                  isStreamer: true
+                });
+                
+                // Также отправляем join-stream-chat
+                socket.emit('join-stream-chat', {
+                  streamId: stream._id,
+                  userId: user.id,
+                  nickname: user.nickname
+                });
+              }
+            }, 100);
+          }
         });
         
         // Слушаем подтверждение join-stream
