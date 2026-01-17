@@ -13,6 +13,23 @@ const initialize = (socketIo) => {
 
   io.on('connection', (socket) => {
     console.log(`✅ Пользователь подключился к WebRTC: ${socket.id}`);
+    
+    // Логируем все входящие события для диагностики
+    const originalEmit = socket.emit.bind(socket);
+    socket.emit = function(...args) {
+      console.log(`[webrtcService] Socket ${socket.id} отправляет событие:`, args[0]);
+      return originalEmit(...args);
+    };
+    
+    // Логируем все входящие события
+    const originalOn = socket.on.bind(socket);
+    socket.on = function(event, handler) {
+      const wrappedHandler = function(...args) {
+        console.log(`[webrtcService] Socket ${socket.id} получил событие: ${event}`, args.length > 0 ? args[0] : 'без данных');
+        return handler.apply(this, args);
+      };
+      return originalOn(event, wrappedHandler);
+    };
 
     // Присоединение к стриму (как стример или зритель)
     socket.on('join-stream', (data) => {
