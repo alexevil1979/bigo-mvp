@@ -103,11 +103,23 @@ webrtcService.initialize(io);
 const Stream = require('./models/Stream');
 const checkInactiveStreams = async () => {
   try {
+    console.log('[checkInactiveStreams] Начало проверки неактивных стримов');
     // Увеличиваем время до 60 секунд для более надежной работы
     const sixtySecondsAgo = new Date(Date.now() - 60 * 1000);
     
     // Находим все активные стримы без heartbeat более 60 секунд
     // Включая стримы, у которых lastHeartbeat null или очень старый
+    const allLiveStreams = await Stream.find({ status: 'live' });
+    console.log(`[checkInactiveStreams] Всего активных стримов: ${allLiveStreams.length}`);
+    
+    allLiveStreams.forEach(stream => {
+      const lastHeartbeat = stream.lastHeartbeat;
+      const timeSinceHeartbeat = lastHeartbeat 
+        ? Math.floor((Date.now() - lastHeartbeat.getTime()) / 1000)
+        : 'неизвестно';
+      console.log(`[checkInactiveStreams] Стрим ${stream._id}: lastHeartbeat=${lastHeartbeat ? lastHeartbeat.toISOString() : 'null'}, время с последнего heartbeat=${timeSinceHeartbeat} сек`);
+    });
+    
     const inactiveStreams = await Stream.find({
       status: 'live',
       $or: [
@@ -117,33 +129,51 @@ const checkInactiveStreams = async () => {
       ]
     });
 
+    console.log(`[checkInactiveStreams] Найдено неактивных стримов: ${inactiveStreams.length}`);
+
     for (const stream of inactiveStreams) {
       const lastHeartbeat = stream.lastHeartbeat;
       const timeSinceHeartbeat = lastHeartbeat 
         ? Math.floor((Date.now() - lastHeartbeat.getTime()) / 1000)
         : 'неизвестно';
       
-      console.log(`⏰ Автоматическое завершение стрима ${stream._id} (нет heartbeat: ${timeSinceHeartbeat} секунд)`);
+      console.log(`[checkInactiveStreams] ⏰ Автоматическое завершение стрима ${stream._id} (нет heartbeat: ${timeSinceHeartbeat} секунд)`);
+      console.log(`[checkInactiveStreams] Детали стрима: streamer=${stream.streamer}, title=${stream.title}, createdAt=${stream.createdAt}`);
+      
       await stream.endStream();
       
+      console.log(`[checkInactiveStreams] Стрим ${stream._id} завершен, отправляем события`);
+      
       // Уведомляем всех зрителей о завершении стрима
-      io.to(`webrtc-${stream._id}`).emit('stream-ended', {
+      const webrtcRoom = `webrtc-${stream._id}`;
+      const streamRoom = `stream-${stream._id}`;
+      const webrtcSockets = await io.in(webrtcRoom).fetchSockets();
+      const streamSockets = await io.in(streamRoom).fetchSockets();
+      
+      console.log(`[checkInactiveStreams] Отправляем stream-ended в комнату ${webrtcRoom}: ${webrtcSockets.length} сокетов`);
+      console.log(`[checkInactiveStreams] Отправляем stream-ended в комнату ${streamRoom}: ${streamSockets.length} сокетов`);
+      
+      io.to(webrtcRoom).emit('stream-ended', {
         streamId: stream._id,
         reason: 'Стрим прервался из-за потери соединения'
       });
-      io.to(`stream-${stream._id}`).emit('stream-ended', {
+      io.to(streamRoom).emit('stream-ended', {
         streamId: stream._id,
         reason: 'Стрим прервался из-за потери соединения'
       });
       
       // Уведомляем всех клиентов об обновлении списка стримов
+      console.log(`[checkInactiveStreams] Отправляем stream-list-updated для стрима ${stream._id}`);
       io.emit('stream-list-updated', {
         type: 'ended',
         streamId: stream._id
       });
     }
+    
+    console.log(`[checkInactiveStreams] Проверка завершена, обработано стримов: ${inactiveStreams.length}`);
   } catch (error) {
-    console.error('Ошибка проверки неактивных стримов:', error);
+    console.error('[checkInactiveStreams] Ошибка проверки неактивных стримов:', error);
+    console.error('[checkInactiveStreams] Stack:', error.stack);
   }
 };
 

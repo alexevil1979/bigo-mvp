@@ -111,15 +111,27 @@ const initialize = (socketIo) => {
     socket.on('stream-heartbeat', async (data) => {
       const { streamId } = data;
       
+      console.log(`[webrtcService] Получен heartbeat для стрима ${streamId} от socket ${socket.id}, isStreamer=${socket.isStreamer}`);
+      
       if (socket.isStreamer && streamId) {
         const Stream = require('../models/Stream');
         try {
-          await Stream.findByIdAndUpdate(streamId, { 
-            lastHeartbeat: new Date() 
-          });
+          const now = new Date();
+          const result = await Stream.findByIdAndUpdate(streamId, { 
+            lastHeartbeat: now 
+          }, { new: true });
+          
+          if (result) {
+            console.log(`[webrtcService] Heartbeat обновлен для стрима ${streamId}, lastHeartbeat=${now.toISOString()}`);
+          } else {
+            console.warn(`[webrtcService] Стрим ${streamId} не найден при обновлении heartbeat`);
+          }
         } catch (error) {
-          console.error('Ошибка обновления heartbeat:', error);
+          console.error(`[webrtcService] Ошибка обновления heartbeat для стрима ${streamId}:`, error);
+          console.error(`[webrtcService] Stack:`, error.stack);
         }
+      } else {
+        console.warn(`[webrtcService] Heartbeat от не-стримера или без streamId: socket.isStreamer=${socket.isStreamer}, streamId=${streamId}`);
       }
     });
 

@@ -122,28 +122,43 @@ exports.getStream = async (req, res) => {
  */
 exports.getMyActiveStream = async (req, res) => {
   try {
+    const userId = req.user._id;
+    console.log(`[getMyActiveStream] Запрос активного стрима для пользователя: ${userId}`);
+    
     const stream = await Stream.findOne({
-      streamer: req.user._id,
+      streamer: userId,
       status: 'live'
     })
     .populate('streamer', 'nickname avatar beans stats');
 
     if (!stream) {
+      console.log(`[getMyActiveStream] Активный стрим не найден для пользователя: ${userId}`);
       return res.status(404).json({ error: 'Активный стрим не найден' });
     }
+
+    console.log(`[getMyActiveStream] Найден активный стрим: ${stream._id}, lastHeartbeat=${stream.lastHeartbeat ? stream.lastHeartbeat.toISOString() : 'null'}`);
 
     // Проверяем, не завис ли стрим (нет heartbeat более 30 секунд)
     const thirtySecondsAgo = new Date(Date.now() - 30 * 1000);
+    const timeSinceHeartbeat = stream.lastHeartbeat 
+      ? Math.floor((Date.now() - stream.lastHeartbeat.getTime()) / 1000)
+      : 'неизвестно';
+    
+    console.log(`[getMyActiveStream] Стрим ${stream._id}: время с последнего heartbeat=${timeSinceHeartbeat} сек, порог=30 сек`);
+    
     if (!stream.lastHeartbeat || stream.lastHeartbeat < thirtySecondsAgo) {
       // Стрим завис - автоматически завершаем его
-      console.log(`⚠️ Найден зависший стрим ${stream._id}, завершаем автоматически`);
+      console.log(`[getMyActiveStream] ⚠️ Найден зависший стрим ${stream._id}, завершаем автоматически (heartbeat: ${timeSinceHeartbeat} сек)`);
       await stream.endStream();
+      console.log(`[getMyActiveStream] Стрим ${stream._id} завершен`);
       return res.status(404).json({ error: 'Активный стрим не найден' });
     }
 
+    console.log(`[getMyActiveStream] Стрим ${stream._id} активен, возвращаем данные`);
     res.json({ stream });
   } catch (error) {
-    console.error('Ошибка получения активного стрима:', error);
+    console.error('[getMyActiveStream] Ошибка получения активного стрима:', error);
+    console.error('[getMyActiveStream] Stack:', error.stack);
     res.status(500).json({ error: 'Ошибка при получении активного стрима' });
   }
 };
