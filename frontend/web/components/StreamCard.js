@@ -17,10 +17,7 @@ export default function StreamCard({ stream }) {
   const [useCanvas, setUseCanvas] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [overlayImage, setOverlayImage] = useState(null);
-  const [overlayVideo, setOverlayVideo] = useState(null);
-  const [overlayType, setOverlayType] = useState(null);
-  const [showOverlay, setShowOverlay] = useState(false);
+  // Убрали состояния заставки - она уже в основном потоке
 
   useEffect(() => {
     if (!stream) return;
@@ -463,16 +460,7 @@ export default function StreamCard({ stream }) {
           }
         });
 
-        // Слушаем изменения заставки от стримера
-        const overlayHandler = (data) => {
-          if (data.streamId === stream._id) {
-            setOverlayImage(data.overlayImage || null);
-            setOverlayVideo(data.overlayVideo || null);
-            setOverlayType(data.overlayType || null);
-            setShowOverlay(data.enabled);
-          }
-        };
-        socket.on('stream-overlay-changed', overlayHandler);
+        // Убрали обработку заставки - она уже в основном потоке через captureStream
 
       } catch (err) {
         console.error('Ошибка настройки превью:', err);
@@ -490,7 +478,6 @@ export default function StreamCard({ stream }) {
         peerConnectionRef.current.close();
       }
       if (socketRef.current) {
-        socketRef.current.off('stream-overlay-changed');
         socketRef.current.emit('leave-stream', { streamId: stream._id });
         socketRef.current.disconnect();
       }
