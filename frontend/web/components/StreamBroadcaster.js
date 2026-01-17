@@ -76,6 +76,16 @@ export default function StreamBroadcaster({ stream, user }) {
                     setTimeout(async () => {
                       if (localStreamRef.current) {
                         await switchToOverlayVideo();
+                      } else {
+                        // Если потока еще нет, переключимся после его создания
+                        const checkAndSwitch = setInterval(async () => {
+                          if (localStreamRef.current) {
+                            clearInterval(checkAndSwitch);
+                            await switchToOverlayVideo();
+                          }
+                        }, 100);
+                        // Таймаут на случай, если поток не создастся
+                        setTimeout(() => clearInterval(checkAndSwitch), 5000);
                       }
                     }, 500);
                   };
