@@ -634,8 +634,8 @@ export default function StreamBroadcaster({ stream, user }) {
     }
     
     function sendOverlayEvent() {
-      if (!socketRef.current || !socketRef.current.connected || !stream?._id) {
-        console.warn('[StreamBroadcaster] Не могу отправить заставку: socket не готов');
+      if (!socketRef.current || !stream?._id) {
+        console.warn('[StreamBroadcaster] Не могу отправить заставку: socket или stream отсутствует');
         return;
       }
       
@@ -656,18 +656,45 @@ export default function StreamBroadcaster({ stream, user }) {
         enabled: enabled
       };
       
-      console.log('[StreamBroadcaster] Отправляю событие stream-overlay-changed:', {
-        streamId: overlayData.streamId,
-        overlayType: overlayData.overlayType,
-        enabled: overlayData.enabled,
-        hasImage: !!overlayData.overlayImage,
-        hasVideo: !!overlayData.overlayVideo,
-        imageLength: overlayData.overlayImage ? overlayData.overlayImage.length : 0,
-        videoLength: overlayData.overlayVideo ? overlayData.overlayVideo.length : 0,
-        socketConnected: socketRef.current.connected
-      });
+      const trySend = () => {
+        if (!socketRef.current || !socketRef.current.connected) {
+          console.warn('[StreamBroadcaster] Socket не подключен, ждем подключения перед отправкой заставки');
+          socketRef.current.once('connect', () => {
+            console.log('[StreamBroadcaster] Socket подключился, отправляю заставку');
+            if (socketRef.current && socketRef.current.connected) {
+              console.log('[StreamBroadcaster] Отправляю событие stream-overlay-changed:', {
+                streamId: overlayData.streamId,
+                overlayType: overlayData.overlayType,
+                enabled: overlayData.enabled,
+                hasImage: !!overlayData.overlayImage,
+                hasVideo: !!overlayData.overlayVideo,
+                imageLength: overlayData.overlayImage ? overlayData.overlayImage.length : 0,
+                videoLength: overlayData.overlayVideo ? overlayData.overlayVideo.length : 0,
+                socketConnected: socketRef.current.connected,
+                socketId: socketRef.current.id
+              });
+              socketRef.current.emit('stream-overlay-changed', overlayData);
+            }
+          });
+          return;
+        }
+        
+        console.log('[StreamBroadcaster] Отправляю событие stream-overlay-changed:', {
+          streamId: overlayData.streamId,
+          overlayType: overlayData.overlayType,
+          enabled: overlayData.enabled,
+          hasImage: !!overlayData.overlayImage,
+          hasVideo: !!overlayData.overlayVideo,
+          imageLength: overlayData.overlayImage ? overlayData.overlayImage.length : 0,
+          videoLength: overlayData.overlayVideo ? overlayData.overlayVideo.length : 0,
+          socketConnected: socketRef.current.connected,
+          socketId: socketRef.current.id
+        });
+        
+        socketRef.current.emit('stream-overlay-changed', overlayData);
+      };
       
-      socketRef.current.emit('stream-overlay-changed', overlayData);
+      trySend();
     }
   };
 
