@@ -16,6 +16,7 @@ const initialize = (socketIo) => {
     console.log(`[webrtcService] Регистрируем обработчики для socket ${socket.id}`);
 
     // Присоединение к стриму (как стример или зритель)
+    console.log(`[webrtcService] Регистрируем обработчик join-stream для socket ${socket.id}`);
     socket.on('join-stream', (data) => {
       console.log(`[webrtcService] ⚡ ОБРАБОТЧИК join-stream ВЫЗВАН для socket ${socket.id}`);
       const { streamId, userId, isStreamer } = data;
@@ -158,7 +159,9 @@ const initialize = (socketIo) => {
     });
 
     // Изменение заставки стрима
+    console.log(`[webrtcService] Регистрируем обработчик stream-overlay-changed для socket ${socket.id}`);
     socket.on('stream-overlay-changed', (data) => {
+      console.log(`[webrtcService] ⚡ ОБРАБОТЧИК stream-overlay-changed ВЫЗВАН для socket ${socket.id}`);
       const { streamId, overlayImage, overlayVideo, overlayType, enabled } = data;
       
       console.log(`[webrtcService] Получено событие stream-overlay-changed:`, {
