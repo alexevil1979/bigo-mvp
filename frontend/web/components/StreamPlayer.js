@@ -511,28 +511,27 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
             if (data.streamId === stream._id) {
               console.log('[StreamPlayer] ✅ StreamId совпадает, применяем заставку');
               
-              // Проверяем размер видео заставки
-              if (data.overlayType === 'video' && data.enabled && data.overlayVideo) {
-                const base64Length = data.overlayVideo.length;
-                const sizeInMB = (base64Length * 3) / 4 / 1024 / 1024;
-                console.log('[StreamPlayer] Видео заставка включена, размер:', sizeInMB.toFixed(2), 'MB');
-                
-                // Если видео слишком большое, предупреждаем, но не блокируем
-                if (sizeInMB > 20) {
-                  console.warn('[StreamPlayer] ВНИМАНИЕ: Видео заставка очень большое:', sizeInMB.toFixed(2), 'MB. Это может вызвать проблемы.');
-                }
-              }
+              // Формируем полные URL для заставок (если это пути к файлам на сервере)
+              const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+              const overlayImageUrl = data.overlayImagePath 
+                ? `${apiUrl}${data.overlayImagePath}` 
+                : (data.overlayImage || null); // Обратная совместимость с base64
+              const overlayVideoUrl = data.overlayVideoPath 
+                ? `${apiUrl}${data.overlayVideoPath}` 
+                : (data.overlayVideo || null); // Обратная совместимость с base64
               
               // Безопасно устанавливаем заставку
               console.log('[StreamPlayer] Устанавливаем заставку:', {
                 overlayType: data.overlayType,
                 enabled: data.enabled,
-                hasImage: !!data.overlayImage,
-                hasVideo: !!data.overlayVideo
+                overlayImagePath: data.overlayImagePath,
+                overlayVideoPath: data.overlayVideoPath,
+                hasImage: !!overlayImageUrl,
+                hasVideo: !!overlayVideoUrl
               });
               
-              setOverlayImage(data.overlayImage || null);
-              setOverlayVideo(data.overlayVideo || null);
+              setOverlayImage(overlayImageUrl);
+              setOverlayVideo(overlayVideoUrl);
               setOverlayType(data.overlayType || null);
               setShowOverlay(data.enabled);
               

@@ -169,24 +169,39 @@ const initialize = (socketIo) => {
 
     // Изменение заставки стрима
     console.log(`[webrtcService] Регистрируем обработчик stream-overlay-changed для socket ${socket.id}`);
-    socket.on('stream-overlay-changed', (data) => {
+    socket.on('stream-overlay-changed', async (data) => {
       console.log(`[webrtcService] ⚡ ОБРАБОТЧИК stream-overlay-changed ВЫЗВАН для socket ${socket.id}`);
-      const { streamId, overlayImage, overlayVideo, overlayType, enabled } = data;
+      const { streamId, overlayImagePath, overlayVideoPath, overlayType, enabled } = data;
       
       console.log(`[webrtcService] Получено событие stream-overlay-changed:`, {
         streamId,
         overlayType,
         enabled,
-        hasImage: !!overlayImage,
-        hasVideo: !!overlayVideo,
-        imageLength: overlayImage ? overlayImage.length : 0,
-        videoLength: overlayVideo ? overlayVideo.length : 0,
+        overlayImagePath,
+        overlayVideoPath,
         socketId: socket.id,
         isStreamer: socket.isStreamer
       });
       
       // Проверяем, что это стример
       if (socket.isStreamer && streamId) {
+        const Stream = require('../models/Stream');
+        
+        // Обновляем заставку в базе данных
+        try {
+          const stream = await Stream.findById(streamId);
+          if (stream && stream.streamer.toString() === socket.userId) {
+            stream.overlay.overlayImagePath = overlayImagePath || null;
+            stream.overlay.overlayVideoPath = overlayVideoPath || null;
+            stream.overlay.overlayType = enabled ? overlayType : null;
+            stream.overlay.showOverlay = enabled === true || enabled === 'true';
+            await stream.save();
+            console.log(`[webrtcService] Заставка сохранена в БД для стрима ${streamId}`);
+          }
+        } catch (error) {
+          console.error(`[webrtcService] Ошибка сохранения заставки в БД:`, error);
+        }
+        
         const webrtcRoom = `webrtc-${streamId}`;
         const streamRoom = `stream-${streamId}`;
         
@@ -199,8 +214,8 @@ const initialize = (socketIo) => {
             // Транслируем событие всем зрителям стрима в комнате WebRTC
             const overlayData = {
               streamId,
-              overlayImage,
-              overlayVideo,
+              overlayImagePath,
+              overlayVideoPath,
               overlayType,
               enabled
             };
@@ -209,10 +224,8 @@ const initialize = (socketIo) => {
               streamId,
               overlayType,
               enabled,
-              hasImage: !!overlayImage,
-              hasVideo: !!overlayVideo,
-              imageLength: overlayImage ? overlayImage.length : 0,
-              videoLength: overlayVideo ? overlayVideo.length : 0,
+              overlayImagePath,
+              overlayVideoPath,
               socketsInRoom: webrtcSockets.length
             });
             

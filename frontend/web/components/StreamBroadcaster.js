@@ -650,17 +650,23 @@ export default function StreamBroadcaster({ stream, user }) {
     console.log('[StreamBroadcaster] handleOverlayChange вызван:', {
       hasOverlay: !!overlay,
       overlayType: typeof overlay,
-      overlayLength: overlay ? overlay.length : 0,
+      overlayIsPath: typeof overlay === 'string' && overlay.startsWith('/uploads/'),
       enabled,
       type,
       socketConnected: socketRef.current?.connected
     });
     
+    // overlay теперь может быть либо путем к файлу на сервере, либо base64 (для обратной совместимости)
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const overlayUrl = typeof overlay === 'string' && overlay.startsWith('/uploads/') 
+      ? `${apiUrl}${overlay}` 
+      : overlay;
+    
     if (type === 'image') {
-      setOverlayImage(overlay);
+      setOverlayImage(overlayUrl);
       setOverlayVideo(null);
     } else if (type === 'video') {
-      setOverlayVideo(overlay);
+      setOverlayVideo(overlayUrl);
       setOverlayImage(null);
     } else {
       setOverlayImage(null);
@@ -668,18 +674,6 @@ export default function StreamBroadcaster({ stream, user }) {
     }
     setOverlayType(type);
     setShowOverlay(enabled);
-    
-    // Сохраняем состояние заставки в sessionStorage
-    if (stream?._id) {
-      const overlayData = {
-        overlayImage: type === 'image' ? overlay : null,
-        overlayVideo: type === 'video' ? overlay : null,
-        overlayType: type,
-        showOverlay: enabled
-      };
-      sessionStorage.setItem(`overlay-${stream._id}`, JSON.stringify(overlayData));
-      console.log('[StreamBroadcaster] Сохранили заставку в sessionStorage:', overlayData);
-    }
     
     // Отправляем информацию о заставке всем зрителям через socket
     if (socketRef.current && stream?._id) {
@@ -712,10 +706,18 @@ export default function StreamBroadcaster({ stream, user }) {
         }
       }
       
+      // Определяем пути к файлам на сервере
+      const overlayImagePath = type === 'image' && enabled && typeof overlay === 'string' && overlay.startsWith('/uploads/') 
+        ? overlay 
+        : null;
+      const overlayVideoPath = type === 'video' && enabled && typeof overlay === 'string' && overlay.startsWith('/uploads/') 
+        ? overlay 
+        : null;
+      
       const overlayData = {
         streamId: stream._id,
-        overlayImage: type === 'image' && enabled ? overlay : null,
-        overlayVideo: type === 'video' && enabled ? overlay : null,
+        overlayImagePath: overlayImagePath,
+        overlayVideoPath: overlayVideoPath,
         overlayType: enabled ? type : null,
         enabled: enabled
       };
@@ -951,10 +953,11 @@ export default function StreamBroadcaster({ stream, user }) {
 
       {/* Модальное окно выбора заставки */}
       {showOverlaySelector && (
-        <OverlaySelector
-          onOverlayChange={handleOverlayChange}
-          onContinue={() => setShowOverlaySelector(false)}
-        />
+          <OverlaySelector
+            streamId={stream?._id}
+            onOverlayChange={handleOverlayChange}
+            onContinue={() => setShowOverlaySelector(false)}
+          />
       )}
 
       <style jsx>{`

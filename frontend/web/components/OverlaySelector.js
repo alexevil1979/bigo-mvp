@@ -9,7 +9,7 @@ import { useState, useRef } from 'react';
  * - Включение/выключение заставки
  * - Продолжение трансляции
  */
-export default function OverlaySelector({ onOverlayChange, onContinue }) {
+export default function OverlaySelector({ onOverlayChange, onContinue, streamId }) {
   const [overlayImage, setOverlayImage] = useState(null);
   const [overlayVideo, setOverlayVideo] = useState(null);
   const [overlayType, setOverlayType] = useState(null); // 'image' or 'video'
@@ -18,7 +18,7 @@ export default function OverlaySelector({ onOverlayChange, onContinue }) {
   const fileInputRef = useRef(null);
   const videoInputRef = useRef(null);
 
-  const handleFileSelect = (e, type) => {
+  const handleFileSelect = async (e, type) => {
     const file = e.target.files[0];
     if (file) {
       if (type === 'image') {
@@ -32,18 +32,8 @@ export default function OverlaySelector({ onOverlayChange, onContinue }) {
           alert('Размер файла не должен превышать 10MB');
           return;
         }
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setOverlayImage(event.target.result);
-          setOverlayVideo(null);
-          setOverlayType('image');
-          setOverlayEnabled(true);
-          setShowOverlay(false); // Заставка не включается автоматически
-          if (onOverlayChange) {
-            onOverlayChange(event.target.result, false, 'image'); // false - заставка выключена
-          }
-        };
-        reader.readAsDataURL(file);
+        // Загружаем файл на сервер
+        await uploadOverlayFile(file, 'image', false);
       } else if (type === 'video') {
         // Проверяем тип файла для видео
         if (!file.type.startsWith('video/')) {
@@ -55,19 +45,62 @@ export default function OverlaySelector({ onOverlayChange, onContinue }) {
           alert('Размер файла не должен превышать 50MB');
           return;
         }
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setOverlayVideo(event.target.result);
-          setOverlayImage(null);
-          setOverlayType('video');
-          setOverlayEnabled(true);
-          setShowOverlay(false); // Заставка не включается автоматически
-          if (onOverlayChange) {
-            onOverlayChange(event.target.result, false, 'video'); // false - заставка выключена
-          }
-        };
-        reader.readAsDataURL(file);
+        // Загружаем файл на сервер
+        await uploadOverlayFile(file, 'video', false);
       }
+    }
+  };
+
+  const uploadOverlayFile = async (file, type, enabled) => {
+    if (!streamId) {
+      alert('Ошибка: streamId не указан');
+      return;
+    }
+    
+    try {
+      const formData = new FormData();
+      formData.append('overlay', file);
+      formData.append('streamId', streamId);
+      formData.append('overlayType', type);
+      formData.append('enabled', enabled);
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/streams/overlay`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка загрузки заставки');
+      }
+
+      const data = await response.json();
+      
+      // Обновляем локальное состояние
+      if (type === 'image') {
+        setOverlayImage(data.overlay.overlayImagePath);
+        setOverlayVideo(null);
+      } else if (type === 'video') {
+        setOverlayVideo(data.overlay.overlayVideoPath);
+        setOverlayImage(null);
+      }
+      setOverlayType(data.overlay.overlayType);
+      setOverlayEnabled(data.overlay.showOverlay);
+      setShowOverlay(data.overlay.showOverlay);
+      
+      // Вызываем callback с путями к файлам на сервере
+      if (onOverlayChange) {
+        onOverlayChange(
+          type === 'image' ? data.overlay.overlayImagePath : data.overlay.overlayVideoPath,
+          data.overlay.showOverlay,
+          type
+        );
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки заставки:', error);
+      alert('Ошибка загрузки заставки. Попробуйте еще раз.');
     }
   };
 

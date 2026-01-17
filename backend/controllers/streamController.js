@@ -500,6 +500,147 @@ exports.getScreenshot = async (req, res) => {
 };
 
 /**
+ * Загрузка заставки для стрима
+ */
+exports.uploadOverlay = async (req, res) => {
+  try {
+    const { streamId, overlayType, enabled } = req.body;
+    
+    // Если файл не загружен, это может быть только обновление состояния (включение/выключение)
+    if (!req.file) {
+      // Обновляем только состояние заставки без загрузки файла
+      const stream = await Stream.findOne({
+        _id: streamId,
+        streamer: req.user._id
+      });
+
+      if (!stream) {
+        return res.status(404).json({ error: 'Стрим не найден или у вас нет прав' });
+      }
+
+      // Обновляем только состояние
+      stream.overlay.overlayType = (enabled === 'true' || enabled === true) ? overlayType : null;
+      stream.overlay.showOverlay = enabled === 'true' || enabled === true;
+      await stream.save();
+
+      return res.json({
+        message: 'Состояние заставки обновлено',
+        overlay: {
+          overlayImagePath: stream.overlay.overlayImagePath,
+          overlayVideoPath: stream.overlay.overlayVideoPath,
+          overlayType: stream.overlay.overlayType,
+          showOverlay: stream.overlay.showOverlay
+        }
+      });
+    }
+
+    // Если файл загружен, сохраняем его
+    const userId = req.user._id;
+
+    console.log('[Overlay Upload] Получен запрос на загрузку заставки:', {
+      streamId,
+      overlayType,
+      enabled,
+      userId: userId.toString(),
+      filename: req.file.filename,
+      mimetype: req.file.mimetype,
+      size: req.file.size
+    });
+
+    // Проверяем, что стрим существует и принадлежит пользователю
+    let stream;
+    try {
+      stream = await Stream.findOne({
+        _id: streamId,
+        streamer: userId
+      });
+    } catch (error) {
+      console.error('[Overlay Upload] Ошибка поиска стрима:', error);
+      if (req.file.path) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(404).json({ error: 'Стрим не найден или у вас нет прав' });
+    }
+
+    if (!stream) {
+      console.error('[Overlay Upload] Стрим не найден или не принадлежит пользователю');
+      if (req.file.path) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(404).json({ error: 'Стрим не найден или у вас нет прав' });
+    }
+
+    // Переименовываем файл с правильным streamId
+    const ext = path.extname(req.file.originalname);
+    const correctFilename = `${stream._id}-overlay-${Date.now()}${ext}`;
+    const correctPath = path.join(path.dirname(req.file.path), correctFilename);
+    
+    try {
+      fs.renameSync(req.file.path, correctPath);
+      console.log('[Overlay Upload] Файл переименован:', req.file.path, '->', correctPath);
+    } catch (renameError) {
+      console.error('[Overlay Upload] Ошибка переименования файла:', renameError);
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(500).json({ error: 'Ошибка при сохранении файла' });
+    }
+
+    // Сохраняем путь к заставке
+    const overlayPath = `/uploads/streams/overlays/${correctFilename}`;
+    
+    // Удаляем старую заставку, если она есть
+    if (stream.overlay.overlayImagePath && overlayType === 'image') {
+      const oldPath = path.join(__dirname, '../../', stream.overlay.overlayImagePath);
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+    }
+    if (stream.overlay.overlayVideoPath && overlayType === 'video') {
+      const oldPath = path.join(__dirname, '../../', stream.overlay.overlayVideoPath);
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+    }
+
+    // Обновляем заставку в стриме
+    if (overlayType === 'image') {
+      stream.overlay.overlayImagePath = overlayPath;
+      stream.overlay.overlayVideoPath = null;
+    } else if (overlayType === 'video') {
+      stream.overlay.overlayVideoPath = overlayPath;
+      stream.overlay.overlayImagePath = null;
+    }
+    stream.overlay.overlayType = enabled ? overlayType : null;
+    stream.overlay.showOverlay = enabled === 'true' || enabled === true;
+    
+    await stream.save();
+
+    console.log('[Overlay Upload] Заставка успешно сохранена:', overlayPath);
+
+    res.json({
+      message: 'Заставка сохранена',
+      overlay: {
+        overlayImagePath: stream.overlay.overlayImagePath,
+        overlayVideoPath: stream.overlay.overlayVideoPath,
+        overlayType: stream.overlay.overlayType,
+        showOverlay: stream.overlay.showOverlay
+      }
+    });
+  } catch (error) {
+    console.error('[Overlay Upload] Ошибка сохранения заставки:', error);
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkError) {
+        console.error('[Overlay Upload] Ошибка удаления файла:', unlinkError);
+      }
+    }
+    res.status(500).json({ error: 'Ошибка при сохранении заставки' });
+  }
+};
+
+/**
  * Очистка старых скриншотов (старше 1 дня)
  */
 exports.cleanupOldScreenshots = async () => {

@@ -95,6 +95,26 @@ const StreamSchema = new mongoose.Schema({
   lastScreenshotAt: {
     type: Date,
     default: null
+  },
+  // Заставка стрима
+  overlay: {
+    overlayImagePath: {
+      type: String,
+      default: null
+    },
+    overlayVideoPath: {
+      type: String,
+      default: null
+    },
+    overlayType: {
+      type: String,
+      enum: ['image', 'video', null],
+      default: null
+    },
+    showOverlay: {
+      type: Boolean,
+      default: false
+    }
   }
 }, {
   timestamps: true

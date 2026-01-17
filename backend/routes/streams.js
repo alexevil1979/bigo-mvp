@@ -3,6 +3,7 @@ const router = express.Router();
 const streamController = require('../controllers/streamController');
 const { authenticate } = require('../middleware/auth');
 const uploadScreenshot = require('../middleware/uploadScreenshot');
+const uploadOverlay = require('../middleware/uploadOverlay');
 
 // Все маршруты требуют аутентификации, кроме получения списка стримов
 router.get('/', streamController.getStreams);
@@ -16,6 +17,7 @@ router.post('/:id/end', authenticate, streamController.endStream);
 router.post('/my/end', authenticate, streamController.endMyActiveStream);
 router.put('/viewers', authenticate, streamController.updateViewerCount);
 router.post('/screenshot', authenticate, uploadScreenshot.single('screenshot'), streamController.uploadScreenshot);
+router.post('/overlay', authenticate, uploadOverlay.single('overlay'), streamController.uploadOverlay);
 
 module.exports = router;
 
