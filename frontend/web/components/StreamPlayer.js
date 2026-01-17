@@ -66,11 +66,10 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
         peerConnectionRef.current = pc;
 
         // Мониторинг статистики WebRTC для диагностики буферизации
-        let statsInterval = null;
         const startStatsMonitoring = () => {
-          if (statsInterval) return;
+          if (statsIntervalRef.current) return;
           
-          statsInterval = setInterval(async () => {
+          statsIntervalRef.current = setInterval(async () => {
             try {
               const stats = await pc.getStats();
               let videoStats = null;
@@ -548,9 +547,9 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
 
     return () => {
       // Останавливаем мониторинг статистики
-      if (statsInterval) {
-        clearInterval(statsInterval);
-        statsInterval = null;
+      if (statsIntervalRef.current) {
+        clearInterval(statsIntervalRef.current);
+        statsIntervalRef.current = null;
       }
       
       if (peerConnectionRef.current) {
