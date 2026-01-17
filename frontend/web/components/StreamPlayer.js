@@ -199,6 +199,14 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
             console.log('[StreamPlayer] ICE failed/disconnected');
             setError('Соединение потеряно');
             setIsConnected(false);
+            
+            // Даже если соединение failed, пробуем запустить видео если srcObject есть
+            if (videoRef.current && videoRef.current.srcObject && videoRef.current.paused) {
+              console.log('[StreamPlayer] Попытка запустить видео после failed соединения');
+              videoRef.current.play().catch(err => {
+                console.log('[StreamPlayer] Не удалось запустить видео после failed:', err);
+              });
+            }
           }
         };
 
@@ -234,13 +242,33 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
         }
 
         // Слушаем offer от стримера
+        let isProcessingOffer = false;
         const offerHandler = async (data) => {
           if (data.streamId === stream._id && (data.targetId === userId || !data.targetId)) {
             console.log('[StreamPlayer] Получен offer от стримера:', data);
+            
+            // Предотвращаем множественную обработку offer
+            if (isProcessingOffer) {
+              console.log('[StreamPlayer] Offer уже обрабатывается, пропускаю');
+              return;
+            }
+            
+            // Если remote description уже установлен, пропускаем
+            if (pc.remoteDescription) {
+              console.log('[StreamPlayer] Remote description уже установлен, пропускаю offer');
+              return;
+            }
+            
             try {
+              isProcessingOffer = true;
+              
               // Проверяем состояние соединения перед установкой
-              if (pc.signalingState === 'stable' && !pc.remoteDescription) {
+              if (pc.signalingState === 'stable' || pc.signalingState === 'have-local-offer') {
                 await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+                
+                // Обрабатываем очередь ICE кандидатов после установки remote description
+                await processIceCandidateQueue();
+                
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
 
@@ -251,41 +279,78 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
                   targetId: data.senderId || stream.streamer._id
                 });
                 setIsConnected(true);
-              } else if (pc.remoteDescription) {
-                console.log('[StreamPlayer] Remote description уже установлен, пропускаю');
               } else {
                 console.log('[StreamPlayer] Неправильное состояние соединения для offer:', pc.signalingState);
               }
             } catch (error) {
               console.error('[StreamPlayer] Ошибка обработки offer:', error);
-              // Если ошибка из-за состояния, пробуем переподключиться
-              if (error.message.includes('wrong state') || error.message.includes('stable')) {
+              // Если ошибка из-за состояния, игнорируем
+              if (error.message.includes('wrong state') || error.message.includes('stable') || error.message.includes('already set')) {
                 console.log('[StreamPlayer] Ошибка состояния соединения, игнорируем');
-              } else if (!error.message.includes('already set')) {
+              } else {
                 setError('Ошибка подключения к стриму');
               }
+            } finally {
+              isProcessingOffer = false;
             }
           }
         };
         socket.on('webrtc-offer', offerHandler);
 
-        // Слушаем answer
+        // Слушаем answer (зритель не должен получать answer, но на случай ошибок обрабатываем)
         socket.on('webrtc-answer', async (data) => {
           if (data.streamId === stream._id) {
-            await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+            try {
+              // Проверяем, что remote description еще не установлен
+              if (!pc.remoteDescription) {
+                await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+              } else {
+                console.log('[StreamPlayer] Remote description уже установлен, игнорируем answer');
+              }
+            } catch (error) {
+              // Игнорируем ошибки answer для зрителя
+              if (!error.message.includes('already set') && !error.message.includes('wrong state')) {
+                console.error('[StreamPlayer] Ошибка обработки answer (ожидаемо для зрителя):', error);
+              }
+            }
           }
         });
 
         // Слушаем ICE кандидаты
+        const iceCandidateQueue = [];
         socket.on('webrtc-ice-candidate', async (data) => {
           if (data.streamId === stream._id && (data.targetId === userId || data.senderId === stream.streamer._id)) {
             try {
-              await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+              // Ждем установки remote description перед добавлением ICE кандидатов
+              if (pc.remoteDescription) {
+                await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+              } else {
+                // Сохраняем кандидаты в очередь до установки remote description
+                iceCandidateQueue.push(data.candidate);
+                console.log('[StreamPlayer] ICE candidate добавлен в очередь, ждем remote description');
+              }
             } catch (error) {
-              console.error('Ошибка добавления ICE candidate:', error);
+              // Игнорируем ошибки, если кандидат уже добавлен или соединение закрыто
+              if (!error.message.includes('already set') && !error.message.includes('closed')) {
+                console.error('[StreamPlayer] Ошибка добавления ICE candidate:', error);
+              }
             }
           }
         });
+
+        // Обработка очереди ICE кандидатов после установки remote description
+        const processIceCandidateQueue = async () => {
+          while (iceCandidateQueue.length > 0 && pc.remoteDescription) {
+            const candidate = iceCandidateQueue.shift();
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (error) {
+              if (!error.message.includes('already set') && !error.message.includes('closed')) {
+                console.error('[StreamPlayer] Ошибка добавления ICE candidate из очереди:', error);
+              }
+            }
+          }
+        };
 
         // Слушаем изменения заставки от стримера
         const overlayHandler = (data) => {
@@ -435,6 +500,23 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
             objectFit: 'contain',
             backgroundColor: '#000'
           }}
+          onClick={async (e) => {
+            // Обработка клика на видео - пытаемся запустить если paused
+            if (videoRef.current && videoRef.current.paused && videoRef.current.srcObject) {
+              console.log('[StreamPlayer] Клик на видео, пытаемся запустить');
+              try {
+                await videoRef.current.play();
+                setIsConnected(true);
+                setError('');
+              } catch (err) {
+                console.error('[StreamPlayer] Ошибка запуска видео по клику:', err);
+                // Если автоплей заблокирован, показываем подсказку
+                if (err.name === 'NotAllowedError') {
+                  setError('Нажмите на кнопку play для запуска видео');
+                }
+              }
+            }
+          }}
           onLoadedMetadata={() => {
             if (videoRef.current && videoRef.current.paused) {
               videoRef.current.play().catch(err => {
@@ -448,6 +530,14 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
                 console.error('Ошибка автоплея:', err);
               });
             }
+          }}
+          onPlay={() => {
+            setIsConnected(true);
+            setError('');
+            console.log('[StreamPlayer] Видео запущено');
+          }}
+          onPause={() => {
+            console.log('[StreamPlayer] Видео приостановлено');
           }}
         />
         {showOverlay && overlayType === 'image' && overlayImage && (
