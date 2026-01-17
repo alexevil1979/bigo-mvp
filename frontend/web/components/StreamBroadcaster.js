@@ -164,11 +164,25 @@ export default function StreamBroadcaster({ stream, user }) {
         }
       }
 
-      socketRef.current.emit('join-stream-chat', {
-        streamId: stream._id,
-        userId: user.id,
-        nickname: user.nickname
-      });
+      // Отправляем join-stream-chat после подключения socket
+      const sendJoinStreamChat = () => {
+        if (socketRef.current && socketRef.current.connected && stream?._id && user?.id) {
+          socketRef.current.emit('join-stream-chat', {
+            streamId: stream._id,
+            userId: user.id,
+            nickname: user.nickname
+          });
+          console.log('[StreamBroadcaster] join-stream-chat отправлен');
+        }
+      };
+      
+      if (socketRef.current) {
+        if (socketRef.current.connected) {
+          sendJoinStreamChat();
+        } else {
+          socketRef.current.once('connect', sendJoinStreamChat);
+        }
+      }
 
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
