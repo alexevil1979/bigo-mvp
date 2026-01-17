@@ -172,27 +172,33 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
             console.log('[StreamPlayer] соединение failed/disconnected');
             
             // Проверяем, есть ли видео и играет ли оно
+            // Приоритет: сначала проверяем !paused (самый надежный индикатор), потом readyState/videoWidth
             if (video && video.srcObject) {
-              const hasVideo = video.readyState >= 2 || video.videoWidth > 0 || !video.paused;
+              const hasVideo = !video.paused || video.readyState >= 2 || video.videoWidth > 0;
               
               if (hasVideo) {
                 console.log('[StreamPlayer] Видео есть, сохраняем соединение даже при failed connectionState:', {
                   readyState: video.readyState,
                   videoWidth: video.videoWidth,
-                  paused: video.paused
+                  paused: video.paused,
+                  hasSrcObject: !!video.srcObject
                 });
                 // Не сбрасываем isConnected, если видео играет
                 if (!video.paused) {
                   setIsConnected(true);
                   setError('');
+                  console.log('[StreamPlayer] Видео играет (!paused), сохраняем соединение');
                 } else {
+                  setIsConnected(true);
                   setError('Соединение нестабильно, но видео доступно');
                 }
               } else {
+                console.log('[StreamPlayer] Видео не найдено, сбрасываем соединение');
                 setError('Соединение потеряно');
                 setIsConnected(false);
               }
             } else {
+              console.log('[StreamPlayer] Нет srcObject, сбрасываем соединение');
               setError('Соединение потеряно');
               setIsConnected(false);
             }
@@ -226,30 +232,33 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
             
             const video = videoRef.current;
             // Проверяем, есть ли видео и играет ли оно
+            // Приоритет: сначала проверяем !paused (самый надежный индикатор), потом readyState/videoWidth
             if (video && video.srcObject) {
-              const hasVideo = video.readyState >= 2 || video.videoWidth > 0 || !video.paused;
+              const hasVideo = !video.paused || video.readyState >= 2 || video.videoWidth > 0;
               
               if (hasVideo) {
-                console.log('[StreamPlayer] Видео есть, сохраняем соединение даже при failed:', {
+                console.log('[StreamPlayer] Видео есть, сохраняем соединение даже при failed ICE:', {
                   readyState: video.readyState,
                   videoWidth: video.videoWidth,
-                  paused: video.paused
+                  paused: video.paused,
+                  hasSrcObject: !!video.srcObject
                 });
                 // Не сбрасываем isConnected, если видео играет
                 if (!video.paused) {
                   setIsConnected(true);
                   setError('');
+                  console.log('[StreamPlayer] Видео играет (!paused), сохраняем соединение при ICE failed');
                 } else {
-                  // Видео есть, но приостановлено - показываем предупреждение, но не сбрасываем
+                  setIsConnected(true);
                   setError('Соединение нестабильно, но видео доступно');
                 }
               } else {
-                // Видео нет - сбрасываем соединение
+                console.log('[StreamPlayer] Видео не найдено при ICE failed, сбрасываем соединение');
                 setError('Соединение потеряно');
                 setIsConnected(false);
               }
             } else {
-              // Нет srcObject - сбрасываем соединение
+              console.log('[StreamPlayer] Нет srcObject при ICE failed, сбрасываем соединение');
               setError('Соединение потеряно');
               setIsConnected(false);
             }
