@@ -731,32 +731,7 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
     };
   }, [isConnected, autoPlay]);
 
-  // Принудительный запуск видео заставки после загрузки
-  useEffect(() => {
-    if (showOverlay && overlayType === 'video' && overlayVideo) {
-      console.log('[StreamPlayer] useEffect для видео заставки, overlayVideo длина:', overlayVideo.length);
-      
-      // Небольшая задержка для того, чтобы видео элемент был в DOM
-      const timer = setTimeout(() => {
-        // Ищем видео элемент заставки по src или по позиции в DOM
-        const videoContainer = document.querySelector('.stream-player > div[style*="position: relative"]');
-        if (videoContainer) {
-          const overlayVideoElements = videoContainer.querySelectorAll('video');
-          // Ищем видео элемент, который не является основным видео стрима
-          overlayVideoElements.forEach(videoEl => {
-            if (videoEl.src && videoEl.src.includes('data:video')) {
-              console.log('[StreamPlayer] Найден элемент видео заставки, принудительно запускаю');
-              videoEl.play().catch(err => {
-                console.log('[StreamPlayer] Не удалось запустить видео заставку (ожидаемо для мобильных):', err);
-              });
-            }
-          });
-        }
-      }, 200);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [showOverlay, overlayType, overlayVideo]);
+  // Убрали useEffect для видео заставки, так как она теперь в основном потоке
 
   // Удаляем overlay с ID и логотипом из DOM при монтировании и обновлении
   useEffect(() => {
