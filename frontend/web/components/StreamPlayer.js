@@ -145,13 +145,15 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
         // Обработка изменения состояния соединения
         pc.onconnectionstatechange = () => {
           console.log('[StreamPlayer] WebRTC connection state:', pc.connectionState);
+          
+          const video = videoRef.current;
           console.log('[StreamPlayer] video state при connectionState change:', {
-            hasVideoRef: !!videoRef.current,
-            hasSrcObject: videoRef.current?.srcObject ? true : false,
-            readyState: videoRef.current?.readyState,
-            paused: videoRef.current?.paused,
-            videoWidth: videoRef.current?.videoWidth,
-            videoHeight: videoRef.current?.videoHeight,
+            hasVideoRef: !!video,
+            hasSrcObject: video?.srcObject ? true : false,
+            readyState: video?.readyState,
+            paused: video?.paused,
+            videoWidth: video?.videoWidth,
+            videoHeight: video?.videoHeight,
             isConnected: isConnected
           });
           
@@ -160,16 +162,40 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
             setIsConnected(true);
             setError('');
             // Пытаемся запустить воспроизведение, если еще не запущено
-            if (videoRef.current && videoRef.current.paused && videoRef.current.srcObject) {
+            if (video && video.paused && video.srcObject) {
               console.log('[StreamPlayer] пытаемся запустить play() при connected');
-              videoRef.current.play().catch(err => {
+              video.play().catch(err => {
                 console.log('[StreamPlayer] ошибка play() при connected:', err);
               });
             }
           } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
             console.log('[StreamPlayer] соединение failed/disconnected');
-            setError('Соединение потеряно');
-            setIsConnected(false);
+            
+            // Проверяем, есть ли видео и играет ли оно
+            if (video && video.srcObject) {
+              const hasVideo = video.readyState >= 2 || video.videoWidth > 0 || !video.paused;
+              
+              if (hasVideo) {
+                console.log('[StreamPlayer] Видео есть, сохраняем соединение даже при failed connectionState:', {
+                  readyState: video.readyState,
+                  videoWidth: video.videoWidth,
+                  paused: video.paused
+                });
+                // Не сбрасываем isConnected, если видео играет
+                if (!video.paused) {
+                  setIsConnected(true);
+                  setError('');
+                } else {
+                  setError('Соединение нестабильно, но видео доступно');
+                }
+              } else {
+                setError('Соединение потеряно');
+                setIsConnected(false);
+              }
+            } else {
+              setError('Соединение потеряно');
+              setIsConnected(false);
+            }
           }
         };
         
