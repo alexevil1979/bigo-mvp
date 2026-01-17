@@ -900,12 +900,32 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
         )}
         {showOverlay && overlayType === 'video' && overlayVideo && (
           <video
+            key={`overlay-video-${overlayVideo.substring(0, 50)}`}
             ref={(el) => {
               if (el) {
-                // Убеждаемся, что видео запускается
-                el.play().catch(err => {
-                  console.log('[StreamPlayer] Ошибка автоплея видео заставки (ожидаемо):', err);
-                });
+                console.log('[StreamPlayer] Видео заставки элемент создан, src длина:', overlayVideo.length);
+                // Убеждаемся, что видео запускается после загрузки
+                const tryPlay = () => {
+                  if (el.readyState >= 2) {
+                    el.play().catch(err => {
+                      console.log('[StreamPlayer] Ошибка автоплея видео заставки (ожидаемо):', err);
+                    });
+                  } else {
+                    // Ждем загрузки метаданных
+                    el.addEventListener('loadedmetadata', () => {
+                      el.play().catch(err => {
+                        console.log('[StreamPlayer] Ошибка автоплея видео заставки после загрузки (ожидаемо):', err);
+                      });
+                    }, { once: true });
+                  }
+                };
+                
+                // Пробуем сразу
+                tryPlay();
+                
+                // Также пробуем после загрузки данных
+                el.addEventListener('loadeddata', tryPlay, { once: true });
+                el.addEventListener('canplay', tryPlay, { once: true });
               }
             }}
             src={overlayVideo}
@@ -913,14 +933,24 @@ export default function StreamPlayer({ stream, user, autoPlay = true }) {
             loop
             muted
             playsInline
+            onLoadedMetadata={() => {
+              console.log('[StreamPlayer] Видео заставки - метаданные загружены');
+            }}
             onLoadedData={() => {
-              console.log('[StreamPlayer] Видео заставки загружено');
+              console.log('[StreamPlayer] Видео заставки - данные загружены');
+            }}
+            onCanPlay={() => {
+              console.log('[StreamPlayer] Видео заставки - готово к воспроизведению');
             }}
             onPlay={() => {
               console.log('[StreamPlayer] Видео заставки запущено');
             }}
             onError={(e) => {
               console.error('[StreamPlayer] Ошибка загрузки видео заставки:', e);
+              const error = e.target.error;
+              if (error) {
+                console.error('[StreamPlayer] Код ошибки видео заставки:', error.code, 'Сообщение:', error.message);
+              }
             }}
             style={{
               position: 'absolute',
