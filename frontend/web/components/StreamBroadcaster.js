@@ -174,21 +174,35 @@ export default function StreamBroadcaster({ stream, user }) {
         clearInterval(heartbeatIntervalRef.current);
       }
       
-      // Отправляем heartbeat каждые 5 секунд для надежности
-      heartbeatIntervalRef.current = setInterval(() => {
+      // Функция для отправки heartbeat
+      const sendHeartbeat = () => {
         if (socketRef.current && socketRef.current.connected && stream?._id) {
           socketRef.current.emit('stream-heartbeat', {
             streamId: stream._id
           });
+          console.log('[StreamBroadcaster] Heartbeat отправлен для стрима:', stream._id);
         } else {
-          console.warn('Не могу отправить heartbeat: socket не подключен или нет stream._id');
+          console.warn('[StreamBroadcaster] Не могу отправить heartbeat:', {
+            hasSocket: !!socketRef.current,
+            socketConnected: socketRef.current?.connected,
+            hasStream: !!stream?._id,
+            streamId: stream?._id
+          });
         }
-      }, 5 * 1000);
+      };
+      
+      // Отправляем heartbeat каждые 5 секунд для надежности
+      heartbeatIntervalRef.current = setInterval(sendHeartbeat, 5 * 1000);
 
-      // Отправляем первый heartbeat сразу
+      // Отправляем первый heartbeat сразу, если socket подключен
       if (socketRef.current && socketRef.current.connected && stream?._id) {
-        socketRef.current.emit('stream-heartbeat', {
-          streamId: stream._id
+        sendHeartbeat();
+      } else if (socketRef.current) {
+        // Если socket еще не подключен, ждем подключения
+        console.log('[StreamBroadcaster] Socket не подключен, ждем подключения для отправки первого heartbeat');
+        socketRef.current.once('connect', () => {
+          console.log('[StreamBroadcaster] Socket подключился, отправляю первый heartbeat');
+          sendHeartbeat();
         });
       }
 
